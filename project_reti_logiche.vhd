@@ -26,32 +26,33 @@ port (
 );
 end project_reti_logiche;
 
+-- BISOGNA INIZIALIZZARE A 0 TUTTI I SEGNALI
 architecture Behavioral of project_reti_logiche is
-        --segnali per l'o_address
+        -- segnali per l'o_address
         signal roAddr_sel, roAddr_load : std_logic;
         signal roAddr, mux_roAddr, o_roAddr, sum_oAddr  : std_logic_vector(15 downto 0);
         
-        --segnali per il calcolo di righe e colonne e termine ciclo di lettura pixel
+        -- segnali per il calcolo di righe e colonne e termine ciclo di lettura pixel
         signal righeIn_load, righeAgg_load, righeAgg_sel, colonneIn_load, colonneAgg_sel, colonneAgg_load, o_end_righe, o_end_colonne : std_logic;
         signal o_righeAgg, o_colonneAgg, o_righeIn, o_colonneIn : std_logic_vector(7 downto 0); --segnale in uscita dei registri
         signal mux_righeAgg, mux_colonneAgg  : std_logic_vector (7 downto 0); --segnale in uscita dai vari multiplexer dei valori aggiornati
         signal sub_righe, sub_colonne : std_logic_vector (7 downto 0);  --sottrattori
 
         
-        --segnali per il calcolo del pixel massimo e minimo
+        -- segnali per il calcolo del pixel massimo e minimo
         signal pixelIn_load, pixelMin1_sel, pixelMin2_sel, pixelMin_load, o_endMin, pixelMax1_sel, pixelMax2_sel, pixelMax_load,  o_endMax   : std_logic;
         signal o_pixelIn, o_pixelMax, o_pixelMin : std_logic_vector(7 downto 0); --segnale in uscita dei registri
         signal mux1_pixelMax, mux1_pixelMin, mux2_pixelMin, mux2_pixelMax : STD_LOGIC_VECTOR (7 downto 0); --segnale in uscita dai mux
 
         
-        --segnali per il delta_value
+        -- segnali per il delta_value
         signal delta_value_load : std_logic;
         signal delta_value : std_logic_vector(7 downto 0);
         
         type S is (S0, S1, S2, S3, S4, S5, S6, S7);
         signal cur_state, next_state : S;
 begin
-    --processo per il clock
+    -- processo per il clock
     process(i_clk, i_rst)     
         begin         
             if(i_rst = '1') then             
@@ -69,7 +70,7 @@ begin
         end if;     
     end process;
     
-     --definizione della macchina a stati
+     -- definizione della macchina a stati
      process(cur_state, i_start, o_end_colonne, o_end_righe)
         begin    
             next_state <= cur_state; 
@@ -120,7 +121,7 @@ begin
                     mux1_pixelMin when '1',
                     "XXXXXXXXXXXXXXXX" when others; 
     
-    --processo per determinare max e min pixel e calcolare i delta_value   
+    -- processo per determinare max e min pixel e calcolare i delta_value   
     process(cur_state)
         begin
         pixelIn_load <= '0';
@@ -160,11 +161,18 @@ begin
         end case;
     end process;
     
-    --definizione dei sottrattori
+    -- operatore maggiore per trovare il massimo pixel
+    pixelMax1_sel <= '1' when (o_pixelIn >= o_pixelMax) else '0';
+    
+    -- operatore minore per trovare il minimo pixel
+    pixelMin1_sel <= '1' when (o_pixelIn <= o_pixelMin) else '0';
+    
+    
+    -- definizione dei sottrattori per decrementare #righe e #colonne
     sub_colonne <= o_colonneAgg - "00000001"; 
     sub_righe <= o_righeAgg - "00000001";
     
-    --definizione dei mux
+    -- definizione dei mux relativi al #righe e #colonne
     with righeAgg_sel select
         mux_righeAgg <= o_righeIn when '0',
                     sub_righe when '1',
@@ -176,7 +184,7 @@ begin
                     "XXXXXXXXXXXXXXXX" when others;
     
     
-    --processo per la gestione di righe e colonne
+    -- processo per la gestione di righe e colonne
     process(cur_state)
         begin
         righeIn_load <= '0';
@@ -216,16 +224,16 @@ begin
         end case;
     end process; 
     
-    --incremento il valore di o_addr
+    -- incremento il valore di o_addr
     sum_oAddr <= "00000001" + o_roAddr; 
     
-    --creazione del mux dell' o_address
+    -- creazione del mux dell' o_address
     with roAddr_sel select
         mux_roAddr <= "0000000000000000" when '0',
                     sum_oAddr when '1',
                     "XXXXXXXXXXXXXXXX" when others;
     
-    --processo per la gestione dell'o_address, dell'enable e dell'o_done
+    -- processo per la gestione dell'o_address, dell'enable e dell'o_done
     process(cur_state)
         begin
         o_address <= "0000000000000000";
@@ -258,7 +266,10 @@ begin
                 roAddr_sel <= '0';
                 roAddr_load <= '1';
             when S7 =>
-                o_done <= '1';                
+                o_done <= '1'; 
+                
+                
+                               
         end case;
     end process;                             
 end Behavioral;
