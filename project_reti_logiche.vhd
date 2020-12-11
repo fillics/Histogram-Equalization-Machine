@@ -5,7 +5,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity project_reti_logiche is
 port (
-i_clk : in std_logic;
+i_clk : in std_logic; --segnale clock
 i_rst : in std_logic;
 i_start : in std_logic;
 i_data : in std_logic_vector(7 downto 0);
