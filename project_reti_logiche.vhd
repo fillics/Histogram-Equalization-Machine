@@ -1,3 +1,12 @@
+----------------------------------------------------------------------------------
+--
+-- Prova Finale (Progetto di Reti Logiche)
+-- Prof. William Fornaciari - Anno 2020/2021
+--
+-- Filippo Caliò (Codice Persona 10628126 Matricola 907675)
+-- Giovanni Caleffi (Codice Persona  Matricola )
+-- 
+----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.std_logic_unsigned.ALL;
@@ -5,15 +14,15 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity project_reti_logiche is
 port (
-i_clk : in std_logic; --segnale clock
-i_rst : in std_logic;
-i_start : in std_logic;
-i_data : in std_logic_vector(7 downto 0);
-o_address : out std_logic_vector(15 downto 0);
-o_done : out std_logic;
-o_en : out std_logic;
-o_we : out std_logic;
-o_data : out std_logic_vector (7 downto 0)
+        i_clk: in std_logic; -- segnale di CLOCK in ingresso generato dal TestBench
+        i_start: in std_logic; -- segnale di START generato dal TestBench
+        i_rst: in std_logic; -- segnale di RESET che inizializza la macchina pronta per ricevere il primo segnale di START
+        i_data: in std_logic_vector(7 downto 0); -- segnale (vettore) che arriva dalla memoria in seguito ad una richiesta di lettura
+        o_address: out std_logic_vector(15 downto 0); -- segnale (vettore) di uscita che manda l'indirizzo alla memoria
+        o_done: out std_logic; -- segnale di uscita che comunica la fine dell'elaborazione e il dato di uscita scritto in memoria
+        o_en: out std_logic; -- segnale di ENABLE da dover mandare alla memoria per poter comunicarci (sia in lettura che in scrittura)
+        o_we: out std_logic; --  segnale di WRITE ENABLE da dover mandare alla memoria (=1) per poter scriverci. Per leggere da memoria esso deve essere 0.
+        o_data: out std_logic_vector(7 downto 0) -- segnale (vettore) di uscita dal componente verso la memoria
 );
 end project_reti_logiche;
 
@@ -39,7 +48,7 @@ architecture Behavioral of project_reti_logiche is
         signal delta_value_load : std_logic;
         signal delta_value : std_logic_vector(7 downto 0);
         
-        type S is(S0, S1, S2, S3, S4, S5, S6, S7);
+        type S is (S0, S1, S2, S3, S4, S5, S6, S7);
         signal cur_state, next_state : S;
 begin
     --processo per il clock
