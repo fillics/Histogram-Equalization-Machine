@@ -42,7 +42,7 @@ architecture Behavioral of project_reti_logiche is
         -- segnali per il calcolo del pixel massimo e minimo
         signal pixelIn_load, pixelMin1_sel, pixelMin2_sel, pixelMin_load, pixelMax1_sel, pixelMax2_sel, pixelMax_load: std_logic := '0';
         signal o_pixelIn, o_pixelMax : std_logic_vector(7 downto 0):= "00000000"; --segnale in uscita dei registri
-        signal o_pixelMin : std_logic_vector := "11111111";
+        signal o_pixelMin : std_logic_vector(7 downto 0) := "11111111";
         signal mux1_pixelMax, mux1_pixelMin, mux2_pixelMin, mux2_pixelMax : std_logic_vector (7 downto 0):= "00000000"; --segnale in uscita dai mux
 
         
@@ -79,6 +79,7 @@ begin
             o_roAddr <= mux_roAddr;
         end  if;
         
+        
         case cur_state is  
             when S0 =>
                 roAddr_sel <= '0';
@@ -114,7 +115,6 @@ begin
      -- definizione della macchina a stati
      process(cur_state, i_start, o_end_colonne, o_end_righe)
         begin    
-            next_state <= cur_state; 
             case cur_state is 
                 when S0 =>
                     if i_start = '1' then
@@ -145,22 +145,22 @@ begin
      with pixelMax1_sel select
         mux1_pixelMax <= o_pixelMax when '0',
                     o_pixelIn when '1',
-                    "XXXXXXXXXXXXXXXX" when others;
+                    "XXXXXXXX" when others;
                     
      with pixelMin1_sel select
         mux1_pixelMin <= o_pixelMin when '0',
                     o_pixelIn when '1',
-                    "XXXXXXXXXXXXXXXX" when others; 
+                    "XXXXXXXX" when others; 
         
      with pixelMax2_sel select
         mux2_pixelMax <= "00000000" when '0',
                     mux1_pixelMax when '1',
-                    "XXXXXXXXXXXXXXXX" when others; 
+                    "XXXXXXXX" when others; 
         
      with pixelMin2_sel select
         mux2_pixelMin <= "11111111" when '0',
                     mux1_pixelMin when '1',
-                    "XXXXXXXXXXXXXXXX" when others; 
+                    "XXXXXXXX" when others; 
                     
     -- uscite comparatori maggiore e minore per trovare il massimo e minimo pixel
     pixelMax1_sel <= '1' when (o_pixelIn >= o_pixelMax) else '0';
@@ -186,7 +186,6 @@ begin
             delta_value <= o_pixelMax - o_pixelMin;
         end  if;
         
-        next_state <= cur_state;
         case cur_state is 
             when S0 =>
             
@@ -224,12 +223,12 @@ begin
     with righeAgg_sel select
         mux_righeAgg <= o_righeIn when '0',
                     sub_righe when '1',
-                    "XXXXXXXXXXXXXXXX" when others;
+                    "XXXXXXXX" when others;
     
     with colonneAgg_sel select
         mux_colonneAgg <= o_colonneIn when '0',
                     sub_colonne when '1',
-                    "XXXXXXXXXXXXXXXX" when others;
+                    "XXXXXXXX" when others;
     
     
     -- processo per la gestione di righe e colonne
@@ -251,7 +250,6 @@ begin
             o_colonneAgg <= mux_colonneAgg;
         end  if;
         
-        next_state <= cur_state;
         case cur_state is 
             when S0 =>
             
