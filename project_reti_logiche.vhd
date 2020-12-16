@@ -3,7 +3,7 @@
 -- Prova Finale (Progetto di Reti Logiche)
 -- Prof. William Fornaciari - Anno 2020/2021
 --
--- Filippo Caliò (Codice Persona 10628126 Matricola 907675)
+-- Filippo Calio' (Codice Persona 10628126 Matricola 907675)
 -- Giovanni Caleffi (Codice Persona 10665233  Matricola 907455 )
 -- 
 ----------------------------------------------------------------------------------
@@ -63,6 +63,7 @@ begin
         end if;     
     end process;
 
+    o_address <= mux_roAddr;
     -- incremento il valore di o_addr
     sum_oAddr <= "00000001" + o_roAddr; 
     
@@ -84,11 +85,11 @@ begin
             when S0 =>
                 roAddr_sel <= '0';
                 roAddr_load <= '1';
+                o_en <= '1';
+                o_we <= '0'; 
             when S1 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
-                o_en <= '1';
-                o_we <= '0';   
             when S2 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
@@ -219,6 +220,10 @@ begin
     sub_colonne <= o_colonneAgg - "00000001"; 
     sub_righe <= o_righeAgg - "00000001";
     
+    -- definizione comparatori delle righe e colonne
+    o_end_righe <= '1' when (o_righeAgg = "00000001") else '0';
+    o_end_colonne <= '1' when (o_colonneAgg = "00000001") else '0';
+    
     -- definizione dei mux relativi al #righe e #colonne
     with righeAgg_sel select
         mux_righeAgg <= o_righeIn when '0',
@@ -246,7 +251,7 @@ begin
             o_righeAgg <= mux_righeAgg;
         end  if;
         
-        if(pixelIn_load = '1') then
+        if(colonneAgg_load = '1') then
             o_colonneAgg <= mux_colonneAgg;
         end  if;
         
@@ -267,7 +272,7 @@ begin
                 colonneIn_load <= '0';
             when S4 =>
                 colonneAgg_sel <= '1';
-                colonneAgg_load <= '0';
+                colonneAgg_load <= '1';
                 righeAgg_sel <= '0';
                 righeAgg_load <= '0';
             when S5 =>
