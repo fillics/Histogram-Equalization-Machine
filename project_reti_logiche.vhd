@@ -50,7 +50,7 @@ architecture Behavioral of project_reti_logiche is
         signal delta_value_load : std_logic := '0';
         signal delta_value : std_logic_vector(7 downto 0):= "00000000"; --segnale in uscita del delta value
         
-        type S is (S0, S1, S2, S3, S4, S5, S6, S7);
+        type S is (S0, S1, S2, S3, S_LOOP2, S5, S6, S7,S_LOOP1);
         signal cur_state, next_state : S;
 begin
     -- processo per il clock
@@ -96,7 +96,9 @@ begin
             when S3 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
-            when S4 =>
+            when S_LOOP1 =>
+            
+            when S_LOOP2 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
             when S5 =>
@@ -126,17 +128,27 @@ begin
                 when S2 =>
                     next_state <= S3;
                 when S3 =>
-                    next_state <= S4;
-                when S4 =>
-                    if o_end_colonne = '0' then
-                        next_state <= S4;
-                    elsif o_end_colonne = '1' and o_end_righe = '1' then
+                    next_state <= S_LOOP1;
+                    
+                when S_LOOP1 =>
+                    if o_end_colonne = '1' and o_end_righe = '1' then
                         next_state <= S6;  
                     elsif o_end_colonne = '1' and o_end_righe = '0' then
                         next_state <= S5;
+                    else
+                        next_state <= S_LOOP2;
+                    end if;
+
+                when S_LOOP2 =>
+                    if o_end_colonne = '1' and o_end_righe = '1' then
+                        next_state <= S6;  
+                    elsif o_end_colonne = '1' and o_end_righe = '0' then
+                        next_state <= S5;
+                    else    
+                        next_state <= S_LOOP1;
                     end if;
                 when S5 =>
-                    next_state <= S4;
+                    next_state <= S_LOOP2;
                 when S6 =>
                     next_state <= S7;
                 when S7 =>
@@ -200,7 +212,9 @@ begin
                 pixelMin_load <= '1';
                 pixelMax2_sel <= '1';
                 pixelMax_load <= '1';
-            when S4 =>
+            when S_LOOP1 =>
+            
+            when S_LOOP2 =>
             
             when S5 =>
             
@@ -261,23 +275,23 @@ begin
             when S1 =>
                 righeIn_load <= '1';
                 righeAgg_sel <= '0';
-                righeAgg_load <= '1';
             when S2 =>
                 righeIn_load <= '0';
                 colonneIn_load <= '1';
-                colonneAgg_sel <= '0';
-                colonneAgg_load <= '1';
+                righeAgg_load <= '1';
+
             when S3 =>
-                righeIn_load <= '0';
+                righeAgg_load <= '0';
                 colonneIn_load <= '0';
-            when S4 =>
-                colonneAgg_sel <= '1';
                 colonneAgg_load <= '1';
-                righeAgg_sel <= '0';
+
+            when S_LOOP1 =>
+                colonneAgg_sel <= '1';
+
+            when S_LOOP2 =>
                 righeAgg_load <= '0';
             when S5 =>
                 colonneAgg_sel <= '0';
-                colonneAgg_load <= '1';
                 righeAgg_sel <= '1';
                 righeAgg_load <= '1';
             when S6 =>
