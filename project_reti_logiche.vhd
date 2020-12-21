@@ -26,7 +26,6 @@ port (
 );
 end project_reti_logiche;
 
--- BISOGNA INIZIALIZZARE A 0 TUTTI I SEGNALI
 architecture Behavioral of project_reti_logiche is
         -- segnali per l'o_address
         signal roAddr_sel, roAddr_load : std_logic := '0' ;
@@ -148,7 +147,7 @@ begin
                         next_state <= S_LOOP1;
                     end if;
                 when S5 =>
-                    next_state <= S_LOOP2;
+                    next_state <= S_LOOP1;
                 when S6 =>
                     next_state <= S7;
                 when S7 =>
@@ -208,23 +207,30 @@ begin
             
             when S3 =>
                 pixelIn_load <= '1';
-                pixelMin2_sel <= '1';
                 pixelMin_load <= '1';
+                
                 pixelMax2_sel <= '1';
                 pixelMax_load <= '1';
             when S_LOOP1 =>
+                pixelIn_load <= '1';
+                pixelMin2_sel <= '1';
             
             when S_LOOP2 =>
             
             when S5 =>
+                pixelIn_load <= '0';
+
             
             when S6 =>
                 pixelIn_load <= '1';
+                
                 pixelMin2_sel <= '1';
                 pixelMin_load <= '1';
                 pixelMax2_sel <= '1';
                 pixelMax_load <= '1';
-                delta_value_load <= '1';                
+                
+                
+                delta_value_load <= '1';                 
             when S7 =>
         end case;
     end process;
@@ -236,7 +242,7 @@ begin
     
     -- definizione comparatori delle righe e colonne
     o_end_righe <= '1' when (o_righeAgg = "00000001") else '0';
-    o_end_colonne <= '1' when (o_colonneAgg = "00000001") else '0';
+    o_end_colonne <= '1' when (o_colonneAgg = "00000010") else '0';
     
     -- definizione dei mux relativi al #righe e #colonne
     with righeAgg_sel select
@@ -287,6 +293,9 @@ begin
 
             when S_LOOP1 =>
                 colonneAgg_sel <= '1';
+                righeAgg_load <= '0';
+                righeAgg_sel <= '0';
+
 
             when S_LOOP2 =>
                 righeAgg_load <= '0';
