@@ -57,7 +57,7 @@ architecture Behavioral of project_reti_logiche is
         
         
         
-        type S is (S0, S1, S2, S3, S_LOOP1, S_LOOP2, S5, S6, S7, S_FINAL);
+        type S is (S0, S1, S2, S3, S_LOOP1, S_LOOP2, S5, S6, S7, S8, S9, S_FINAL);
         signal cur_state, next_state : S;
 begin
     -- processo per il clock
@@ -117,6 +117,8 @@ begin
                 roAddr_sel <= '0';
                 roAddr_load <= '1';
             when S7 =>
+            when S8 =>
+            when S9 =>
             when S_FINAL =>
                 o_done <= '1';                     
         end case;
@@ -160,7 +162,11 @@ begin
                 when S6 =>
                     next_state <= S7;
                 when S7 =>
-                    next_state <= S_FINAL;
+                    next_state <= S8;
+                when S8 =>
+                    next_state <= S9;
+                when S9 =>
+                    next_state <= S_FINAL;                    
                 when S_FINAL =>
             end case;
     end process;  
@@ -198,25 +204,26 @@ begin
     -- processo per determinare max e min pixel e calcolare i delta_value e lo shift level  
     process(cur_state)
         begin
+        
         --valore di o_floor in base a delta_value_sum
         if (delta_value_sum = "000000001") then
-            o_floor <= "0000";
+            o_floor <= "0000"; --floor = 0
         elsif(delta_value_sum >= "000000010" and delta_value_sum < "000000100") then
-            o_floor <= "0001";    
+            o_floor <= "0001"; --floor = 1
         elsif(delta_value_sum >= "000000100" and delta_value_sum < "000001000") then
-            o_floor <= "0010";
+            o_floor <= "0010"; --floor = 2
         elsif(delta_value_sum >= "000001000" and delta_value_sum < "000010000") then
-            o_floor <= "0011";
+            o_floor <= "0011"; --floor = 3
         elsif(delta_value_sum >= "000010000" and delta_value_sum < "000100000") then
-            o_floor <= "0100";
+            o_floor <= "0100"; --floor = 4
         elsif(delta_value_sum >= "000100000" and delta_value_sum < "001000000") then
-            o_floor <= "0101";
+            o_floor <= "0101"; --floor = 5
         elsif(delta_value_sum >= "001000000" and delta_value_sum < "010000000") then
-            o_floor <= "0110";
+            o_floor <= "0110"; --floor = 6
         elsif(delta_value_sum >= "010000000" and delta_value_sum < "100000000") then
-            o_floor <= "0111";
+            o_floor <= "0111"; --floor = 7
         elsif(delta_value_sum = "100000000") then
-            o_floor <= "1000";  
+            o_floor <= "1000"; --floor = 8
         end if;
         
         if(shift_level_load = '1') then
@@ -259,7 +266,7 @@ begin
             when S_LOOP2 =>
             
             when S5 =>
-                pixelIn_load <= '0';
+                pixelIn_load <= '1';
             
             when S6 =>
                 pixelIn_load <= '1';
@@ -270,10 +277,20 @@ begin
                 pixelMax_load <= '1';
                 
                 
-                delta_value_load <= '1'; 
             when S7 =>
+                delta_value_load <= '1'; 
+                pixelIn_load <= '0';
+                
+                pixelMin2_sel <= '0';
+                pixelMin_load <= '0';
+                pixelMax2_sel <= '0';
+                pixelMax_load <= '0';
+                
+            when S8 =>
+                delta_value_load <= '0';    
+            when S9 =>
                 shift_level_load <= '1';
-                                
+                                 
             when S_FINAL =>
         end case;
     end process;
@@ -348,6 +365,8 @@ begin
                 righeAgg_load <= '1';
             when S6 =>
             when S7 =>
+            when S8 =>
+            when S9 =>
 
             when S_FINAL =>
         end case;
