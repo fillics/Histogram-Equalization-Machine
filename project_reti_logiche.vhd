@@ -49,7 +49,15 @@ architecture Behavioral of project_reti_logiche is
         signal delta_value_load : std_logic := '0';
         signal delta_value : std_logic_vector(7 downto 0):= "00000000"; --segnale in uscita del delta value
         
-        type S is (S0, S1, S2, S3, S_LOOP2, S5, S6, S7,S_LOOP1);
+        --segnali dello shift level
+        signal delta_value_sum : std_logic_vector(8 downto 0) := "000000000";
+        signal o_floor, shift_level : std_logic_vector(3 downto 0) := "0000";
+        
+        signal shift_level_load : std_logic := '0';
+        
+        
+        
+        type S is (S0, S1, S2, S3, S_LOOP1, S_LOOP2, S5, S6, S7, S_FINAL);
         signal cur_state, next_state : S;
 begin
     -- processo per il clock
@@ -109,6 +117,7 @@ begin
                 roAddr_sel <= '0';
                 roAddr_load <= '1';
             when S7 =>
+            when S_FINAL =>
                 o_done <= '1';                     
         end case;
     end process; 
@@ -149,10 +158,13 @@ begin
                 when S5 =>
                     next_state <= S_LOOP1;
                 when S6 =>
-                    next_state <= S7;
+                    next_state <= S_FINAL;
                 when S7 =>
+                when S_FINAL =>
             end case;
     end process;  
+    
+    
     -- multiplexer di max e min    
      with pixelMax1_sel select
         mux1_pixelMax <= o_pixelMax when '0',
@@ -173,15 +185,45 @@ begin
         mux2_pixelMin <= "11111111" when '0',
                     mux1_pixelMin when '1',
                     "XXXXXXXX" when others; 
+         
                     
     -- uscite comparatori maggiore e minore per trovare il massimo e minimo pixel
     pixelMax1_sel <= '1' when (o_pixelIn >= o_pixelMax) else '0';
     
     pixelMin1_sel <= '1' when (o_pixelIn <= o_pixelMin) else '0';                    
     
-    -- processo per determinare max e min pixel e calcolare i delta_value   
+ 
+    
+    
+    
+    -- processo per determinare max e min pixel e calcolare i delta_value e lo shift level  
     process(cur_state)
         begin
+        --valore di o_floor in base a delta_value_sum
+        if (delta_value_sum = "000000001") then
+            o_floor <= "0000";
+        elsif(delta_value_sum >= "000000010" and delta_value_sum < "000000100") then
+            o_floor <= "0001";    
+        elsif(delta_value_sum >= "000000100" and delta_value_sum < "000001000") then
+            o_floor <= "0010";
+        elsif(delta_value_sum >= "000001000" and delta_value_sum < "000010000") then
+            o_floor <= "0011";
+        elsif(delta_value_sum >= "000010000" and delta_value_sum < "000100000") then
+            o_floor <= "0100";
+        elsif(delta_value_sum >= "000100000" and delta_value_sum < "001000000") then
+            o_floor <= "0101";
+        elsif(delta_value_sum >= "001000000" and delta_value_sum < "010000000") then
+            o_floor <= "0110";
+        elsif(delta_value_sum >= "010000000" and delta_value_sum < "100000000") then
+            o_floor <= "0111";
+        elsif(delta_value_sum = "100000000") then
+            o_floor <= "1000";  
+        end if;
+        
+        if(shift_level_load = '1') then
+            shift_level <= "1000" -  o_floor;
+        end if;
+        
         if(pixelIn_load = '1') then
             o_pixelIn <= i_data;
         end  if;
@@ -219,7 +261,6 @@ begin
             
             when S5 =>
                 pixelIn_load <= '0';
-
             
             when S6 =>
                 pixelIn_load <= '1';
@@ -230,8 +271,10 @@ begin
                 pixelMax_load <= '1';
                 
                 
-                delta_value_load <= '1';                 
+                delta_value_load <= '1'; 
             when S7 =>
+                                
+            when S_FINAL =>
         end case;
     end process;
     
@@ -305,8 +348,8 @@ begin
                 righeAgg_load <= '1';
             when S6 =>
             when S7 =>
+
+            when S_FINAL =>
         end case;
     end process;                             
 end Behavioral;
-                
-                
