@@ -158,8 +158,9 @@ begin
                 when S5 =>
                     next_state <= S_LOOP1;
                 when S6 =>
-                    next_state <= S_FINAL;
+                    next_state <= S7;
                 when S7 =>
+                    next_state <= S_FINAL;
                 when S_FINAL =>
             end case;
     end process;  
@@ -189,13 +190,11 @@ begin
                     
     -- uscite comparatori maggiore e minore per trovare il massimo e minimo pixel
     pixelMax1_sel <= '1' when (o_pixelIn >= o_pixelMax) else '0';
-    
     pixelMin1_sel <= '1' when (o_pixelIn <= o_pixelMin) else '0';                    
     
- 
-    
-    
-    
+    -- definizione sommatore per calcolare delta_value_sum = deltavalue + 1
+    delta_value_sum <= "000000001" + delta_value;
+
     -- processo per determinare max e min pixel e calcolare i delta_value e lo shift level  
     process(cur_state)
         begin
@@ -273,6 +272,7 @@ begin
                 
                 delta_value_load <= '1'; 
             when S7 =>
+                shift_level_load <= '1';
                                 
             when S_FINAL =>
         end case;
