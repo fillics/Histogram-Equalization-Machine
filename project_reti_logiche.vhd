@@ -28,49 +28,137 @@ end project_reti_logiche;
 
 architecture Behavioral of project_reti_logiche is
         -- segnali per l'o_address
-        signal roAddr_sel, roAddr_load : std_logic := '0' ;
-        signal mux_roAddr, o_roAddr, sum_oAddr  : std_logic_vector(15 downto 0) := "0000000000000000" ;
+        signal roAddr_sel, roAddr_load : std_logic;
+        signal mux_roAddr :std_logic_vector(15 downto 0);
+        signal o_roAddr, sum_oAddr : std_logic_vector(15 downto 0) := "0000000000000000";
         
         -- segnali per il calcolo di righe e colonne e termine ciclo di lettura pixel
-        signal righeIn_load, righeAgg_load, righeAgg_sel, colonneIn_load, colonneAgg_sel, colonneAgg_load, o_end_righe, o_end_colonne : std_logic := '0';
-        signal o_righeAgg, o_colonneAgg, o_righeIn, o_colonneIn : std_logic_vector(7 downto 0) := "00000000"; --segnale in uscita dei registri
-        signal mux_righeAgg, mux_colonneAgg  : std_logic_vector (7 downto 0):= "00000000"; --segnale in uscita dai vari multiplexer dei valori aggiornati
-        signal sub_righe, sub_colonne : std_logic_vector (7 downto 0):= "00000000";  --sottrattori
+        signal righeIn_load, righeAgg_load, righeAgg_sel, colonneIn_load, colonneAgg_sel, colonneAgg_load, o_end_righe, o_end_colonne: std_logic;
+        signal o_righeAgg, o_colonneAgg, o_righeIn, o_colonneIn:std_logic_vector(7 downto 0) := "00000000"; --segnale in uscita dei registri
+        signal mux_righeAgg, mux_colonneAgg :std_logic_vector (7 downto 0); --segnale in uscita dai vari multiplexer dei valori aggiornati
+        signal sub_righe, sub_colonne:std_logic_vector (7 downto 0);  --sottrattori
 
         
         -- segnali per il calcolo del pixel massimo e minimo
-        signal pixelIn_load, pixelMin1_sel, pixelMin2_sel, pixelMin_load, pixelMax1_sel, pixelMax2_sel, pixelMax_load: std_logic := '0';
-        signal o_pixelIn, o_pixelMax : std_logic_vector(7 downto 0):= "00000000"; --segnale in uscita dei registri
-        signal o_pixelMin : std_logic_vector(7 downto 0) := "11111111";
-        signal mux1_pixelMax, mux1_pixelMin, mux2_pixelMin, mux2_pixelMax : std_logic_vector (7 downto 0):= "00000000"; --segnale in uscita dai mux
+        signal pixelIn_load, pixelMin1_sel, pixelMin2_sel, pixelMin_load, pixelMax1_sel, pixelMax2_sel, pixelMax_load :std_logic;
+        signal o_pixelIn, o_pixelMax:std_logic_vector(7 downto 0) := "00000000"; --segnale in uscita dei registri
+        signal o_pixelMin:std_logic_vector(7 downto 0) := "11111111";
+        signal mux1_pixelMax, mux1_pixelMin, mux2_pixelMin, mux2_pixelMax :std_logic_vector (7 downto 0); --segnale in uscita dai mux
 
         
         -- segnali per il delta_value
-        signal delta_value_load : std_logic := '0';
-        signal delta_value : std_logic_vector(7 downto 0):= "00000000"; --segnale in uscita del delta value
+        signal delta_value_load:std_logic;
+        signal delta_value:std_logic_vector(7 downto 0); --segnale in uscita del delta value
         
         --segnali dello shift level
-        signal delta_value_sum : std_logic_vector(8 downto 0) := "000000000";
-        signal o_floor, shift_level : std_logic_vector(3 downto 0) := "0000";
+        signal delta_value_sum: std_logic_vector(8 downto 0);
+        signal o_floor, shift_level:std_logic_vector(3 downto 0);
         
-        signal shift_level_load : std_logic := '0';
+        signal shift_level_load :std_logic;
         
-        
-        
-        type S is (S0, S1, S2, S3, S_LOOP1, S_LOOP2, S5, S6, S7, S8, S9, S_FINAL);
+        type S is (S0, S1, S2, S3, S_LOOP, S5, S5bis, S6, S7, S8, S9, S_FINAL);
         signal cur_state, next_state : S;
+        
 begin
+
     -- processo per il clock
     process(i_clk, i_rst)     
         begin         
             if(i_rst = '1') then             
-            cur_state <= S0;       
+                cur_state <= S0;       
         elsif i_clk'event and i_clk = '1' then             
             cur_state <= next_state;                   
         end if;     
     end process;
 
+     process(i_clk, i_rst)     
+        begin         
+            if(i_rst = '1') then             
+                o_roAddr <= "0000000000000000";    
+            elsif i_clk'event and i_clk = '1' then             
+                if(roAddr_load = '1') then
+                    o_roAddr <= mux_roAddr;
+                end if;
+            end if;     
+    end process;
+
+    process(i_clk, i_rst)     
+        begin    
+            if i_clk'event and i_clk = '1' then             
+                if(righeIn_load = '1') then
+                    o_righeIn <= i_data;
+                elsif (colonneIn_load = '1') then
+                    o_colonneIn <= i_data;
+                 
+                end if;
+            end if;     
+    end process;
+    
+
+
+    process(i_clk, i_rst)     
+        begin         
+            if i_clk'event and i_clk = '1' then             
+                if(righeAgg_load = '1') then
+                    o_righeAgg <= mux_righeAgg;
+                elsif(colonneAgg_load = '1') then
+                    o_colonneAgg <= mux_colonneAgg;
+                end if;
+            end if;     
+    end process;
+
+
+    process(i_clk, i_rst)     
+        begin    
+            if i_clk'event and i_clk = '1' then             
+                if(pixelIn_load = '1') then
+                    o_pixelIn <= i_data;
+                end  if;
+            end if;     
+    end process;
+
+    process(i_clk, i_rst)     
+        begin         
+            if(i_rst = '1') then             
+                o_pixelMax <= "00000000";   
+            elsif i_clk'event and i_clk = '1' then             
+                if(pixelMax_load = '1') then
+                    o_pixelMax <= mux2_pixelMax;
+                end  if;
+            end if;     
+    end process;
+
+    process(i_clk, i_rst)     
+        begin         
+            if(i_rst = '1') then             
+                o_pixelMin <= "11111111";   
+            elsif i_clk'event and i_clk = '1' then             
+                if(pixelMin_load = '1') then
+                    o_pixelMin <= mux2_pixelMin;
+                end  if;
+            end if;     
+    end process;
+
+    process(i_clk, i_rst)     
+        begin         
+            if i_clk'event and i_clk = '1' then             
+                if(delta_value_load = '1') then
+                    delta_value <= o_pixelMax - o_pixelMin;
+                end  if;
+            end if;     
+    end process;
+    
+    process(i_clk, i_rst)     
+        begin         
+            if i_clk'event and i_clk = '1' then             
+               if(shift_level_load = '1') then
+                     shift_level <= "1000" -  o_floor;
+               end if;
+            end if;     
+    end process;  
+
     o_address <= mux_roAddr;
+
     -- incremento il valore di o_addr
     sum_oAddr <= "00000001" + o_roAddr; 
     
@@ -83,32 +171,33 @@ begin
     -- processo per la gestione dell'o_address, dell'enable e dell'o_done
     process(cur_state)
         begin
-        if(roAddr_load = '1') then
-            o_roAddr <= mux_roAddr;
-        end  if;
-        
-        
+        roAddr_sel <= '0';
+        roAddr_load <= '0';
+        o_en <= '1';
+        o_we <= '0'; 
+        o_done <= '0'; 
         case cur_state is  
             when S0 =>
-                roAddr_sel <= '0';
-                roAddr_load <= '1';
-                o_en <= '1';
-                o_we <= '0'; 
+                 
             when S1 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
+                
             when S2 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
+                 
             when S3 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
-            when S_LOOP1 =>
-            
-            when S_LOOP2 =>
+            when S_LOOP =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
+                
             when S5 =>
+                roAddr_sel <= '1';
+                roAddr_load <= '0'; -- possibilità di metterlo a 1
+           when S5bis =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
             when S6 =>
@@ -128,6 +217,7 @@ begin
      -- definizione della macchina a stati
      process(cur_state, i_start, o_end_colonne, o_end_righe)
         begin    
+        next_state <= cur_state;
             case cur_state is 
                 when S0 =>
                     if i_start = '1' then
@@ -138,27 +228,20 @@ begin
                 when S2 =>
                     next_state <= S3;
                 when S3 =>
-                    next_state <= S_LOOP1;
+                    next_state <= S_LOOP;
                     
-                when S_LOOP1 =>
+                when S_LOOP =>
                     if o_end_colonne = '1' and o_end_righe = '1' then
                         next_state <= S6;  
                     elsif o_end_colonne = '1' and o_end_righe = '0' then
                         next_state <= S5;
                     else
-                        next_state <= S_LOOP2;
-                    end if;
-
-                when S_LOOP2 =>
-                    if o_end_colonne = '1' and o_end_righe = '1' then
-                        next_state <= S6;  
-                    elsif o_end_colonne = '1' and o_end_righe = '0' then
-                        next_state <= S5;
-                    else    
-                        next_state <= S_LOOP1;
+                        next_state <= S_LOOP;
                     end if;
                 when S5 =>
-                    next_state <= S_LOOP1;
+                    next_state <= S5bis;
+                when S5bis =>
+                    next_state <= S_LOOP; 
                 when S6 =>
                     next_state <= S7;
                 when S7 =>
@@ -171,130 +254,8 @@ begin
             end case;
     end process;  
     
-    
-    -- multiplexer di max e min    
-     with pixelMax1_sel select
-        mux1_pixelMax <= o_pixelMax when '0',
-                    o_pixelIn when '1',
-                    "XXXXXXXX" when others;
-                    
-     with pixelMin1_sel select
-        mux1_pixelMin <= o_pixelMin when '0',
-                    o_pixelIn when '1',
-                    "XXXXXXXX" when others; 
-        
-     with pixelMax2_sel select
-        mux2_pixelMax <= "00000000" when '0',
-                    mux1_pixelMax when '1',
-                    "XXXXXXXX" when others; 
-        
-     with pixelMin2_sel select
-        mux2_pixelMin <= "11111111" when '0',
-                    mux1_pixelMin when '1',
-                    "XXXXXXXX" when others; 
-         
-                    
-    -- uscite comparatori maggiore e minore per trovare il massimo e minimo pixel
-    pixelMax1_sel <= '1' when (o_pixelIn >= o_pixelMax) else '0';
-    pixelMin1_sel <= '1' when (o_pixelIn <= o_pixelMin) else '0';                    
-    
-    -- definizione sommatore per calcolare delta_value_sum = deltavalue + 1
-    delta_value_sum <= "000000001" + delta_value;
+        ------------------------------------------ RIGHE E COLONNE -----------------------------------------
 
-    -- processo per determinare max e min pixel e calcolare i delta_value e lo shift level  
-    process(cur_state)
-        begin
-        
-        --valore di o_floor in base a delta_value_sum
-        if (delta_value_sum = "000000001") then
-            o_floor <= "0000"; --floor = 0
-        elsif(delta_value_sum >= "000000010" and delta_value_sum < "000000100") then
-            o_floor <= "0001"; --floor = 1
-        elsif(delta_value_sum >= "000000100" and delta_value_sum < "000001000") then
-            o_floor <= "0010"; --floor = 2
-        elsif(delta_value_sum >= "000001000" and delta_value_sum < "000010000") then
-            o_floor <= "0011"; --floor = 3
-        elsif(delta_value_sum >= "000010000" and delta_value_sum < "000100000") then
-            o_floor <= "0100"; --floor = 4
-        elsif(delta_value_sum >= "000100000" and delta_value_sum < "001000000") then
-            o_floor <= "0101"; --floor = 5
-        elsif(delta_value_sum >= "001000000" and delta_value_sum < "010000000") then
-            o_floor <= "0110"; --floor = 6
-        elsif(delta_value_sum >= "010000000" and delta_value_sum < "100000000") then
-            o_floor <= "0111"; --floor = 7
-        elsif(delta_value_sum = "100000000") then
-            o_floor <= "1000"; --floor = 8
-        end if;
-        
-        if(shift_level_load = '1') then
-            shift_level <= "1000" -  o_floor;
-        end if;
-        
-        if(pixelIn_load = '1') then
-            o_pixelIn <= i_data;
-        end  if;
-        
-        if(pixelMax_load = '1') then
-            o_pixelMax <= mux2_pixelMax;
-        end  if;
-        
-        if(pixelMin_load = '1') then
-            o_pixelMin <= mux2_pixelMin;
-        end  if;
-        
-        if(delta_value_load = '1') then
-            delta_value <= o_pixelMax - o_pixelMin;
-        end  if;
-        
-        case cur_state is 
-            when S0 =>
-            
-            when S1 =>
-            
-            when S2 =>
-            
-            when S3 =>
-                pixelIn_load <= '1';
-                pixelMin_load <= '1';
-                
-                pixelMax2_sel <= '1';
-                pixelMax_load <= '1';
-            when S_LOOP1 =>
-                pixelIn_load <= '1';
-                pixelMin2_sel <= '1';
-            
-            when S_LOOP2 =>
-            
-            when S5 =>
-                pixelIn_load <= '1';
-            
-            when S6 =>
-                pixelIn_load <= '1';
-                
-                pixelMin2_sel <= '1';
-                pixelMin_load <= '1';
-                pixelMax2_sel <= '1';
-                pixelMax_load <= '1';
-                
-                
-            when S7 =>
-                delta_value_load <= '1'; 
-                pixelIn_load <= '0';
-                
-                pixelMin2_sel <= '0';
-                pixelMin_load <= '0';
-                pixelMax2_sel <= '0';
-                pixelMax_load <= '0';
-                
-            when S8 =>
-                delta_value_load <= '0';    
-            when S9 =>
-                shift_level_load <= '1';
-                                 
-            when S_FINAL =>
-        end case;
-    end process;
-    
     
     -- definizione dei sottrattori per decrementare #righe e #colonne
     sub_colonne <= o_colonneAgg - "00000001"; 
@@ -316,53 +277,42 @@ begin
                     "XXXXXXXX" when others;
     
     
+    
     -- processo per la gestione di righe e colonne
     process(cur_state)
         begin
-        if(righeIn_load = '1') then
-            o_righeIn <= i_data;
-        end  if;
         
-        if(colonneIn_load = '1') then
-            o_colonneIn <= i_data;
-        end  if;
-        
-        if(righeAgg_load = '1') then
-            o_righeAgg <= mux_righeAgg;
-        end  if;
-        
-        if(colonneAgg_load = '1') then
-            o_colonneAgg <= mux_colonneAgg;
-        end  if;
+        righeIn_load <= '0';
+        righeAgg_sel <= '0';
+        colonneIn_load <= '0';
+        righeAgg_load <= '0';
+        colonneAgg_load <= '0';
+        colonneAgg_sel <= '0';
         
         case cur_state is 
             when S0 =>
             
             when S1 =>
                 righeIn_load <= '1';
-                righeAgg_sel <= '0';
+
             when S2 =>
-                righeIn_load <= '0';
-                colonneIn_load <= '1';
                 righeAgg_load <= '1';
+                colonneIn_load <= '1';
 
             when S3 =>
-                righeAgg_load <= '0';
-                colonneIn_load <= '0';
                 colonneAgg_load <= '1';
 
-            when S_LOOP1 =>
+            when S_LOOP =>
                 colonneAgg_sel <= '1';
-                righeAgg_load <= '0';
-                righeAgg_sel <= '0';
+                colonneAgg_load <= '1';
 
-
-            when S_LOOP2 =>
-                righeAgg_load <= '0';
             when S5 =>
-                colonneAgg_sel <= '0';
                 righeAgg_sel <= '1';
                 righeAgg_load <= '1';
+                colonneAgg_load <= '1';
+                
+            when S5bis =>
+                colonneAgg_load <= '1';
             when S6 =>
             when S7 =>
             when S8 =>
@@ -370,5 +320,135 @@ begin
 
             when S_FINAL =>
         end case;
-    end process;                             
+    end process;     
+
+
+    ------------------------------------------ MAX E MIN -----------------------------------------
+    -- multiplexer di max e min    
+     with pixelMax1_sel select
+        mux1_pixelMax <= o_pixelMax when '0',
+                    o_pixelIn when '1',
+                    "XXXXXXXX" when others;
+                    
+     with pixelMax2_sel select
+        mux2_pixelMax <= "00000000" when '0',
+                    mux1_pixelMax when '1',
+                    "XXXXXXXX" when others;   
+                                 
+                                     
+     with pixelMin1_sel select
+        mux1_pixelMin <= o_pixelMin when '0',
+                    o_pixelIn when '1',
+                    "XXXXXXXX" when others; 
+        
+     with pixelMin2_sel select
+        mux2_pixelMin <= "11111111" when '0',
+                    mux1_pixelMin when '1',
+                    "XXXXXXXX" when others; 
+      
+     -- uscite comparatori maggiore e minore per trovare il massimo e minimo pixel
+    pixelMax1_sel <= '1' when (o_pixelIn >= o_pixelMax) else '0';
+    pixelMin1_sel <= '1' when (o_pixelIn <= o_pixelMin) else '0';                    
+    
+    -- definizione sommatore per calcolare delta_value_sum = deltavalue + 1
+    delta_value_sum <= "000000001" + delta_value;
+    
+        -- processo per determinare max e min pixel e calcolare i delta_value e lo shift level  
+    process(cur_state)
+        begin
+        
+        pixelIn_load <= '0';
+        pixelMin_load <= '0';
+        pixelMax_load <= '0';
+        
+        pixelMax2_sel <= '0';
+        pixelMin2_sel <= '0';
+        
+        delta_value_load <= '0'; 
+        shift_level_load <= '0';  
+              
+        --valore di o_floor in base a delta_value_sum
+        if (delta_value_sum = "000000001") then
+            o_floor <= "0000"; --floor = 0
+        elsif(delta_value_sum >= "000000010" and delta_value_sum < "000000100") then
+            o_floor <= "0001"; --floor = 1
+        elsif(delta_value_sum >= "000000100" and delta_value_sum < "000001000") then
+            o_floor <= "0010"; --floor = 2
+        elsif(delta_value_sum >= "000001000" and delta_value_sum < "000010000") then
+            o_floor <= "0011"; --floor = 3
+        elsif(delta_value_sum >= "000010000" and delta_value_sum < "000100000") then
+            o_floor <= "0100"; --floor = 4
+        elsif(delta_value_sum >= "000100000" and delta_value_sum < "001000000") then
+            o_floor <= "0101"; --floor = 5
+        elsif(delta_value_sum >= "001000000" and delta_value_sum < "010000000") then
+            o_floor <= "0110"; --floor = 6
+        elsif(delta_value_sum >= "010000000" and delta_value_sum < "100000000") then
+            o_floor <= "0111"; --floor = 7
+        elsif(delta_value_sum = "100000000") then
+            o_floor <= "1000"; --floor = 8
+        end if;
+
+        case cur_state is 
+            when S0 =>
+            
+            when S1 =>
+            
+            when S2 =>
+    
+            when S3 =>
+                pixelIn_load <= '1';
+                pixelMin_load <= '1';
+                
+                pixelMax2_sel <= '1';
+                pixelMax_load <= '1';
+            when S_LOOP =>
+                pixelIn_load <= '1';
+                pixelMin_load <= '1';
+                
+                pixelMin2_sel <= '1';
+                
+                pixelMax2_sel <= '1';
+                pixelMax_load <= '1';
+                
+
+            when S5 =>
+                pixelIn_load <= '1';
+                pixelMin_load <= '1';
+                
+                pixelMin2_sel <= '1';
+                
+                pixelMax2_sel <= '1';
+                pixelMax_load <= '1';
+                
+            when S5bis =>
+                pixelIn_load <= '1';
+                pixelMin_load <= '1';
+                
+                pixelMin2_sel <= '1';
+                
+                pixelMax2_sel <= '1';
+                pixelMax_load <= '1';
+                           
+            when S6 =>
+                pixelIn_load <= '1';
+                pixelMin_load <= '1';
+                
+                pixelMin2_sel <= '1';
+                
+                pixelMax2_sel <= '1';
+                pixelMax_load <= '1';
+                
+                
+            when S7 =>
+                delta_value_load <= '1'; 
+
+                
+            when S8 =>
+            when S9 =>
+                shift_level_load <= '1';
+                                 
+            when S_FINAL =>
+        end case;
+    end process;
+                               
 end Behavioral;
