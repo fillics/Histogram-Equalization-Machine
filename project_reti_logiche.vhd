@@ -31,6 +31,15 @@ architecture Behavioral of project_reti_logiche is
         signal roAddr_sel, roAddr_load : std_logic;
         signal mux_roAddr :std_logic_vector(15 downto 0);
         signal o_roAddr, sum_oAddr : std_logic_vector(15 downto 0) := "0000000000000000";
+        signal which_oaddress : std_logic;
+        
+        -- segnali per il nuovo o_address
+        signal o_dim : std_logic_vector (15 downto 0):= "0000000000000000";
+        signal dim_load: std_logic;
+        signal mux_newroAddr, sum_dimroAddr, sub_dim, sub_dimroAddr : std_logic_vector(15 downto 0);
+        signal newroAddr_sel : std_logic;
+        signal o_end_final : std_logic;
+
         
         -- segnali per il calcolo di righe e colonne e termine ciclo di lettura pixel
         signal righeIn_load, righeAgg_load, righeAgg_sel, colonneIn_load, colonneAgg_sel, colonneAgg_load, o_end_righe, o_end_colonne: std_logic;
@@ -38,30 +47,38 @@ architecture Behavioral of project_reti_logiche is
         signal mux_righeAgg, mux_colonneAgg :std_logic_vector (7 downto 0); --segnale in uscita dai vari multiplexer dei valori aggiornati
         signal sub_righe, sub_colonne:std_logic_vector (7 downto 0);  --sottrattori
 
-        
         -- segnali per il calcolo del pixel massimo e minimo
         signal pixelIn_load, pixelMin1_sel, pixelMin2_sel, pixelMin_load, pixelMax1_sel, pixelMax2_sel, pixelMax_load :std_logic;
-        signal o_pixelIn, o_pixelMax:std_logic_vector(7 downto 0) := "00000000"; --segnale in uscita dei registri
-        signal o_pixelMin:std_logic_vector(7 downto 0) := "11111111";
+        signal o_pixelIn, o_pixelMax : std_logic_vector(7 downto 0) := "00000000"; --segnale in uscita dei registri
+        signal o_pixelMin : std_logic_vector(7 downto 0) := "11111111";
         signal mux1_pixelMax, mux1_pixelMin, mux2_pixelMin, mux2_pixelMax :std_logic_vector (7 downto 0); --segnale in uscita dai mux
 
-        
         -- segnali per il delta_value
         signal delta_value_load:std_logic;
         signal delta_value:std_logic_vector(7 downto 0); --segnale in uscita del delta value
         
-        --segnali dello shift level
+        -- segnali dello shift level
         signal delta_value_sum: std_logic_vector(8 downto 0);
         signal o_floor, shift_level:std_logic_vector(3 downto 0);
-        
         signal shift_level_load :std_logic;
         
-        type S is (S0, S1, S2, S3, S_LOOP, S5, S5bis, S6, S7, S8, S9, S_FINAL);
+        -- segnali per calcolo del new_pixel_value
+        signal o_current_pixel_value : std_logic_vector(7 downto 0) := "00000000";
+        signal current_pixel_value_load : std_logic;
+        signal sub_currentPixel : std_logic_vector(7 downto 0) := "00000000";
+        signal temp_pixel : std_logic_vector(7 downto 0) := "00000000";
+        signal temp_pixel_load : std_logic;
+        signal new_pixel_value : std_logic_vector(7 downto 0) := "00000000";
+        signal new_pixel_value_load : std_logic;
+        
+        
+        type S is (S0, S1, S2, S3, S_LOOP, S5, S5bis, S6, S7, S8, S9, S10, S11, S12, S_FINAL);
         signal cur_state, next_state : S;
         
 begin
 
     -- processo per il clock
+    
     process(i_clk, i_rst)     
         begin         
             if(i_rst = '1') then             
@@ -71,7 +88,7 @@ begin
         end if;     
     end process;
 
-     process(i_clk, i_rst)     
+    process(i_clk, i_rst)     
         begin         
             if(i_rst = '1') then             
                 o_roAddr <= "0000000000000000";    
@@ -95,7 +112,6 @@ begin
     end process;
     
 
-
     process(i_clk, i_rst)     
         begin         
             if i_clk'event and i_clk = '1' then             
@@ -106,7 +122,6 @@ begin
                 end if;
             end if;     
     end process;
-
 
     process(i_clk, i_rst)     
         begin    
@@ -157,7 +172,18 @@ begin
             end if;     
     end process;  
 
-    o_address <= mux_roAddr;
+    process(i_clk, i_rst)     
+        begin         
+            if i_clk'event and i_clk = '1' then             
+                if(dim_load = '1') then
+                    o_dim <= o_roAddr - "0000000000000010";
+                end if;
+            end if;     
+    end process;
+    
+    
+    --------------------------------------------------------------------
+    o_address <= mux_roAddr when (which_oaddress = '0') else mux_newroAddr;
 
     -- incremento il valore di o_addr
     sum_oAddr <= "00000001" + o_roAddr; 
@@ -167,15 +193,33 @@ begin
         mux_roAddr <= "0000000000000000" when '0',
                     sum_oAddr when '1',
                     "XXXXXXXXXXXXXXXX" when others;
+   
+    with newroAddr_sel select
+        mux_newroAddr <= "0000000000000010" when '0',
+                    sub_dimroAddr when '1',
+                    "XXXXXXXXXXXXXXXX" when others;
+                    
+    -- sottrattori
+    sub_dim <= o_dim - "0000000000000001";  
+    sub_dimroAddr <= sum_dimroAddr - sub_dim;
     
+    -- sommatore
+    sum_dimroAddr <= mux_newroAddr + o_dim;               
+                                            
     -- processo per la gestione dell'o_address, dell'enable e dell'o_done
     process(cur_state)
         begin
+        
+             
         roAddr_sel <= '0';
         roAddr_load <= '0';
+        dim_load <= '0';
+        newroAddr_sel <= '0';
+        which_oaddress <= '0';
         o_en <= '1';
         o_we <= '0'; 
         o_done <= '0'; 
+        
         case cur_state is  
             when S0 =>
                  
@@ -190,6 +234,7 @@ begin
             when S3 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
+                
             when S_LOOP =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
@@ -197,17 +242,44 @@ begin
             when S5 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '0'; -- possibilità di metterlo a 1
+                
            when S5bis =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
+                
             when S6 =>
-                o_en <= '1';
-                o_we <= '1';
                 roAddr_sel <= '0';
                 roAddr_load <= '1';
+                dim_load <= '1';
+                o_en <= '1';
+                o_we <= '1';
+                
             when S7 =>
+                roAddr_sel <= '1';
+                roAddr_load <= '1';
+                
             when S8 =>
+                roAddr_sel <= '1';
+                roAddr_load <= '1';
+                
             when S9 =>
+                which_oaddress <= '1';
+                newroAddr_sel <= '1';
+                  
+                 
+            when S10 =>
+                which_oaddress <= '1';
+                newroAddr_sel <= '1';  
+ 
+                                
+            when S11 =>
+                which_oaddress <= '1';
+                newroAddr_sel <= '1';  
+      
+             when S12 =>
+                which_oaddress <= '1';
+                newroAddr_sel <= '1';  
+                                                    
             when S_FINAL =>
                 o_done <= '1';                     
         end case;
@@ -249,7 +321,17 @@ begin
                 when S8 =>
                     next_state <= S9;
                 when S9 =>
-                    next_state <= S_FINAL;                    
+                    if o_end_final = '1' then
+                        next_state <= S_FINAL;
+                    else 
+                        next_state <= S10;
+                    end if;
+                when S10 =>
+                    next_state <= S11;
+                when S11 =>
+                    next_state <= S12; 
+                when S12 =>
+                    next_state <= S9;   
                 when S_FINAL =>
             end case;
     end process;  
@@ -313,10 +395,14 @@ begin
                 
             when S5bis =>
                 colonneAgg_load <= '1';
+              
             when S6 =>
             when S7 =>
             when S8 =>
             when S9 =>
+            when S10 =>
+            when S11 =>
+            when S12 =>
 
             when S_FINAL =>
         end case;
@@ -441,12 +527,16 @@ begin
                 
             when S7 =>
                 delta_value_load <= '1'; 
-
+                pixelIn_load <= '1';
                 
             when S8 =>
+                pixelIn_load <= '1';
             when S9 =>
+                pixelIn_load <= '1';
                 shift_level_load <= '1';
-                                 
+            when S10 =>
+            when S11 =>
+            when S12 =>                     
             when S_FINAL =>
         end case;
     end process;
