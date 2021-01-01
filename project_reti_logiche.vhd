@@ -27,63 +27,52 @@ port (
 end project_reti_logiche;
 
 architecture Behavioral of project_reti_logiche is
-        -- segnali per l'o_address
-        signal roAddr_sel, roAddr_load : std_logic;
-        signal mux_roAddr :std_logic_vector(15 downto 0);
-        signal o_roAddr, sum_oAddr : std_logic_vector(15 downto 0) := "0000000000000000";
+        -- segnali per l'o_address 
+        signal roAddr_sel, roAddr_load: std_logic;
+        signal mux_roAddr: std_logic_vector(15 downto 0);
+        signal o_roAddr, sum_oAddr: std_logic_vector(15 downto 0) := "0000000000000000";
         
         --segnali per il new_o_address
-        
-        signal new_roAddr_sel, new_roAddr_load, new_dim_load : std_logic;
-        signal new_mux_roAddr :std_logic_vector(15 downto 0);
-        signal new_o_roAddr, new_sum_oAddr, new_dim : std_logic_vector(15 downto 0) := "0000000000000000";
+        signal new_roAddr_sel, new_roAddr_load, new_dim_load: std_logic;
+        signal new_mux_roAddr: std_logic_vector(15 downto 0);
+        signal new_o_roAddr, new_sum_oAddr, new_dim: std_logic_vector(15 downto 0) := "0000000000000000";
         
         -- contatore finale
-        
-        signal contatore, sub_contatore : std_logic_vector(15 downto 0) := "0000000000000000";
-        signal contatore_load, contatore_sel, o_end_contatore : std_logic;
-        signal mux_contatore :std_logic_vector(15 downto 0);
+        signal contatore, sub_contatore: std_logic_vector(15 downto 0) := "0000000000000000";
+        signal contatore_load, contatore_sel, o_end_contatore: std_logic;
+        signal mux_contatore: std_logic_vector(15 downto 0);
 
-
-        
         --multiplexer di gestione dell'o_address
-        signal mux_definitivo : std_logic_vector(15 downto 0);
-        signal mux_definitivo_sel : std_logic;
+        signal mux_definitivo: std_logic_vector(15 downto 0);
+        signal mux_definitivo_sel: std_logic;
 
-        
         -- segnali per il calcolo di righe e colonne e termine ciclo di lettura pixel
         signal righeIn_load, righeAgg_load, righeAgg_sel, colonneIn_load, colonneAgg_sel, colonneAgg_load, o_end_righe, o_end_colonne: std_logic;
-        signal o_righeAgg, o_colonneAgg, o_righeIn, o_colonneIn:std_logic_vector(7 downto 0) := "00000000"; --segnale in uscita dei registri
-        signal mux_righeAgg, mux_colonneAgg :std_logic_vector (7 downto 0); --segnale in uscita dai vari multiplexer dei valori aggiornati
-        signal sub_righe, sub_colonne:std_logic_vector (7 downto 0);  --sottrattori
+        signal o_righeAgg, o_colonneAgg, o_righeIn, o_colonneIn: std_logic_vector(7 downto 0) := "00000000"; --segnale in uscita dei registri
+        signal mux_righeAgg, mux_colonneAgg: std_logic_vector (7 downto 0); --segnale in uscita dai vari multiplexer dei valori aggiornati
+        signal sub_righe, sub_colonne: std_logic_vector (7 downto 0);  --sottrattori
 
-        
         -- segnali per il calcolo del pixel massimo e minimo
-        signal pixelIn_load, pixelMin1_sel, pixelMin2_sel, pixelMin_load, pixelMax1_sel, pixelMax2_sel, pixelMax_load :std_logic;
-        signal o_pixelIn, o_pixelMax:std_logic_vector(7 downto 0) := "00000000"; --segnale in uscita dei registri
-        signal o_pixelMin:std_logic_vector(7 downto 0) := "11111111";
-        signal mux1_pixelMax, mux1_pixelMin, mux2_pixelMin, mux2_pixelMax :std_logic_vector (7 downto 0); --segnale in uscita dai mux
+        signal pixelIn_load, pixelMin1_sel, pixelMin2_sel, pixelMin_load, pixelMax1_sel, pixelMax2_sel, pixelMax_load: std_logic;
+        signal o_pixelIn, o_pixelMax: std_logic_vector(7 downto 0) := "00000000"; --segnale in uscita dei registri
+        signal o_pixelMin: std_logic_vector(7 downto 0) := "11111111";
+        signal mux1_pixelMax, mux1_pixelMin, mux2_pixelMin, mux2_pixelMax: std_logic_vector (7 downto 0); --segnale in uscita dai mux
 
-        
         -- segnali per il delta_value
-        signal delta_value_load:std_logic;
-        signal delta_value:std_logic_vector(7 downto 0); --segnale in uscita del delta value
+        signal delta_value_load: std_logic;
+        signal delta_value: std_logic_vector(7 downto 0); --segnale in uscita del delta value
         
         --segnali dello shift level
         signal delta_value_sum: std_logic_vector(8 downto 0);
-        signal o_floor, shift_level:std_logic_vector(3 downto 0);
-        
-        signal shift_level_load :std_logic;
+        signal o_floor, shift_level: std_logic_vector(3 downto 0):= "0000";
+        signal shift_level_load: std_logic;
         
         -- segnali per calcolo del new_pixel_value
-        signal o_current_pixel_value : std_logic_vector(7 downto 0) := "00000000";
-        signal current_pixel_value_load : std_logic;
-        signal sub_currentPixel : std_logic_vector(7 downto 0) := "00000000";
-        signal temp_pixel : std_logic_vector(7 downto 0) := "00000000";
-        signal temp_pixel_load : std_logic;
-        signal new_pixel_value : std_logic_vector(7 downto 0) := "00000000";
-        signal new_pixel_value_load : std_logic;
-        
+        signal o_current_pixel_value, sub_currentPixel, new_pixel_value: std_logic_vector(7 downto 0) := "00000000";
+        signal new_pixel_value_load, current_pixel_value_load, comparatore_sel : std_logic; 
+        signal shift_value, mux_comparatore: std_logic_vector(15 downto 0) := "0000000000000000";
+
+
         type S is (S0, S1, S2, S3, S_LOOP, S5, S5bis, S6, S7, S8, S9, S10, S11, S12, S_FINAL);
         signal cur_state, next_state : S;
         
@@ -100,7 +89,7 @@ begin
         end if;     
     end process;
 
-     process(i_clk, i_rst)     
+    process(i_clk, i_rst)     
         begin         
             if(i_rst = '1') then             
                 o_roAddr <= "0000000000000000";    
@@ -111,8 +100,7 @@ begin
             end if;     
     end process;
     
-
-    process(i_clk, i_rst)     
+    process(i_clk, i_rst) -- gestione righeIn e colonneIn     
         begin    
             if i_clk'event and i_clk = '1' then             
                 if(righeIn_load = '1') then
@@ -133,6 +121,25 @@ begin
             end if;     
     end process;
 
+    process(i_clk, i_rst)     
+        begin    
+            if i_clk'event and i_clk = '1' then             
+                if(current_pixel_value_load = '1') then
+                    o_current_pixel_value <= i_data;
+                end if;
+            end if;     
+    end process;
+    
+    process(i_clk, i_rst)     
+        begin    
+            if i_clk'event and i_clk = '1' then             
+                if(new_pixel_value_load = '1') then
+                    new_pixel_value <= mux_comparatore(7 downto 0);
+                end if;
+            end if;     
+    end process;
+
+        
     process(i_clk, i_rst)     
         begin    
             if i_clk'event and i_clk = '1' then             
@@ -161,7 +168,6 @@ begin
                 end if;
             end if;     
     end process;
-
 
     process(i_clk, i_rst)     
         begin    
@@ -229,7 +235,6 @@ begin
                     sum_oAddr when '1',
                     "XXXXXXXXXXXXXXXX" when others;
     
-    
     with new_roAddr_sel select
         new_mux_roAddr <= new_dim when '0',
                     new_sum_oAddr when '1',
@@ -243,7 +248,8 @@ begin
     with contatore_sel select
         mux_contatore <= new_dim when '0',
                     sub_contatore when '1',
-                    "XXXXXXXXXXXXXXXX" when others;                              
+                    "XXXXXXXXXXXXXXXX" when others;  
+                                                
     -- processo per la gestione dell'o_address, dell'enable e dell'o_done
     process(cur_state)
         begin
@@ -380,9 +386,8 @@ begin
             end case;
     end process;  
     
-        ------------------------------------------ RIGHE E COLONNE -----------------------------------------
+    ------------------------------------------ RIGHE E COLONNE -----------------------------------------
 
-    
     -- definizione dei sottrattori per decrementare #righe e #colonne
     sub_colonne <= o_colonneAgg - "00000001"; 
     sub_righe <= o_righeAgg - "00000001";
@@ -583,6 +588,65 @@ begin
                  
             when S11 =>
             when S12 =>                                                
+            when S_FINAL =>
+        end case;
+    end process;
+  
+    ------------------------------------------ NEW PIXEL VALUE -----------------------------------------
+
+    comparatore_sel <= '1' when (shift_value < "0000000011111111") else '0';
+    
+    sub_currentPixel <= o_current_pixel_value - o_pixelMin;
+    
+    with comparatore_sel select
+        mux_comparatore <= "0000000011111111" when '0',
+                    shift_value when '1',
+                    "XXXXXXXXXXXXXXXX" when others; 
+                    
+    process(cur_state)
+        begin
+        current_pixel_value_load <= '0';
+ 
+        new_pixel_value_load <= '0';
+                
+        if (shift_level = "0000") then
+            shift_value <= "00000000" & sub_currentPixel;
+        elsif(shift_level = "0001") then
+            shift_value <= "0000000" & sub_currentPixel & "0";
+        elsif(shift_level = "0010") then
+            shift_value <= "000000" & sub_currentPixel & "00";
+        elsif(shift_level = "0011") then
+            shift_value <= "00000" & sub_currentPixel & "000";
+        elsif(shift_level = "0100") then
+            shift_value <= "0000" & sub_currentPixel & "0000";
+        elsif(shift_level = "0101") then
+            shift_value <= "000" & sub_currentPixel & "00000";
+        elsif(shift_level = "0110") then
+            shift_value <= "00" & sub_currentPixel & "000000";
+        elsif(shift_level = "0111") then
+            shift_value <= "0" & sub_currentPixel & "0000000";
+        elsif(shift_level = "1000") then
+            shift_value <= sub_currentPixel & "00000000";
+        end if;
+
+        case cur_state is 
+            when S0 =>
+            when S1 =>
+            when S2 =>
+            when S3 =>
+            when S_LOOP =>
+            when S5 =>
+            when S5bis =>
+            when S6 =>
+            when S7 =>
+            when S8 =>
+            when S9 =>
+                current_pixel_value_load <= '1'; 
+            when S10 =>
+                current_pixel_value_load <= '1'; 
+            when S11 =>
+
+            when S12 =>  
             when S_FINAL =>
         end case;
     end process;
