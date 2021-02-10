@@ -73,7 +73,7 @@ architecture Behavioral of project_reti_logiche is
         signal shift_value, mux_comparatore: std_logic_vector(15 downto 0) := "0000000000000000";
 
 
-        type S is (S0, S1, S2, S3, S_LOOP, S5, S5bis, S6, S7, S8, S9, S10, S11, S12, S_FINAL);
+        type S is (S0, S1, S2, S3, S_LOOP, S5, S5bis, S6, S7, S8, S9, S10, S11, S11bis, S12, S_FINAL);
         signal cur_state, next_state : S;
         
         
@@ -303,13 +303,14 @@ begin
                 contatore_load <= '1';
             when S8 =>
                 roAddr_sel <= '1';
-                roAddr_load <= '1';
+               -- roAddr_load <= '1';
                 new_roAddr_load <= '1';
                 new_roAddr_sel <= '0';
                 contatore_sel <= '1';
             when S9 =>
                 mux_definitivo_sel <= '1'; 
                 contatore_sel <= '1';
+                roAddr_load <= '1';
                 roAddr_sel <= '1';
             when S10 => 
                 mux_definitivo_sel <= '1'; 
@@ -321,14 +322,19 @@ begin
                 mux_definitivo_sel <= '1'; 
                 contatore_sel <= '1';
                 roAddr_sel <= '1';
-            when S12 =>
+            when S11bis =>
                 new_roAddr_sel <= '1';
                 mux_definitivo_sel <= '0'; 
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
                 new_roAddr_load <= '1';
                 contatore_sel <= '1';
-                contatore_load <= '1';
+                contatore_load <= '1';            
+            when S12 =>
+                mux_definitivo_sel <= '1'; 
+                new_roAddr_sel <= '1';
+                contatore_sel <= '1';
+                roAddr_sel <= '1';
             when S_FINAL =>
                 o_done <= '1';                                 
         end case;
@@ -374,14 +380,16 @@ begin
                 when S10 => 
                     next_state <= S11;
                 when S11 =>
-                    next_state <= S12;
-                when S12 =>
-                     if(o_end_contatore = '0') then
-                        next_state <= S10;
+                    next_state <= S11bis;
+                when S11bis =>
+                    if(o_end_contatore = '0') then
+                        next_state <= S12;
                     else
                         next_state <= S_FINAL;
                     end if;
-                       
+                when S12 =>
+                    next_state <= S10;                    
+        
                 when S_FINAL =>
             end case;
     end process;  
@@ -452,7 +460,7 @@ begin
             when S10 => 
                  
             when S11 =>
-              
+            when S11bis =>  
             when S12 =>             
             when S_FINAL =>
         end case;
@@ -587,6 +595,7 @@ begin
             when S10 => 
                  
             when S11 =>
+            when S11bis =>
             when S12 =>                                                
             when S_FINAL =>
         end case;
@@ -641,12 +650,16 @@ begin
             when S7 =>
             when S8 =>
             when S9 =>
-                current_pixel_value_load <= '1'; 
+                current_pixel_value_load <= '1';
             when S10 =>
-                current_pixel_value_load <= '1'; 
-            when S11 =>
 
-            when S12 =>  
+                 
+            when S11 =>
+            when S11bis =>
+                
+                new_pixel_value_load <= '1';  
+            when S12 => 
+                current_pixel_value_load <= '1';
             when S_FINAL =>
         end case;
     end process;
