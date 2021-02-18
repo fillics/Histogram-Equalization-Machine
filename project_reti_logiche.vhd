@@ -67,9 +67,9 @@ architecture Behavioral of project_reti_logiche is
         signal o_floor, shift_level: std_logic_vector(3 downto 0):= "0000";
         signal shift_level_load: std_logic;
         
-        -- segnali per calcolo del new_pixel_value
-        signal o_current_pixel_value, sub_currentPixel, new_pixel_value: std_logic_vector(7 downto 0) := "00000000";
-        signal new_pixel_value_load, current_pixel_value_load, comparatore_sel : std_logic; 
+        -- segnali per calcolo dell' o_data
+        signal o_current_pixel_value, sub_currentPixel: std_logic_vector(7 downto 0) := "00000000";
+        signal current_pixel_value_load, comparatore_sel : std_logic; 
         signal shift_value, mux_comparatore: std_logic_vector(15 downto 0) := "0000000000000000";
 
 
@@ -107,7 +107,6 @@ begin
                     o_righeIn <= i_data;
                 elsif (colonneIn_load = '1') then
                     o_colonneIn <= i_data;
-                 
                 end if;
             end if;     
     end process;
@@ -129,17 +128,7 @@ begin
                 end if;
             end if;     
     end process;
-    
-    process(i_clk, i_rst)     
-        begin    
-            if i_clk'event and i_clk = '1' then             
-                if(new_pixel_value_load = '1') then
-                    new_pixel_value <= mux_comparatore(7 downto 0);
-                end if;
-            end if;     
-    end process;
-
-        
+ 
     process(i_clk, i_rst)     
         begin    
             if i_clk'event and i_clk = '1' then             
@@ -217,6 +206,8 @@ begin
                end if;
             end if;     
     end process;  
+            
+    o_data <= mux_comparatore(7 downto 0);   
 
     o_address <= mux_definitivo;
     
@@ -292,8 +283,6 @@ begin
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
             when S6 =>
-                o_en <= '1';
-                o_we <= '1';
                 roAddr_sel <= '0';
                 roAddr_load <= '1';
                 new_dim_load <= '1';
@@ -303,7 +292,6 @@ begin
                 contatore_load <= '1';
             when S8 =>
                 roAddr_sel <= '1';
-               -- roAddr_load <= '1';
                 new_roAddr_load <= '1';
                 new_roAddr_sel <= '0';
                 contatore_sel <= '1';
@@ -322,6 +310,7 @@ begin
                 mux_definitivo_sel <= '1'; 
                 contatore_sel <= '1';
                 roAddr_sel <= '1';
+                o_we <= '1';
             when S11bis =>
                 new_roAddr_sel <= '1';
                 mux_definitivo_sel <= '0'; 
@@ -602,7 +591,6 @@ begin
     end process;
   
     ------------------------------------------ NEW PIXEL VALUE -----------------------------------------
-
     comparatore_sel <= '1' when (shift_value < "0000000011111111") else '0';
     
     sub_currentPixel <= o_current_pixel_value - o_pixelMin;
@@ -611,12 +599,10 @@ begin
         mux_comparatore <= "0000000011111111" when '0',
                     shift_value when '1',
                     "XXXXXXXXXXXXXXXX" when others; 
-                    
+                                 
     process(cur_state)
         begin
         current_pixel_value_load <= '0';
- 
-        new_pixel_value_load <= '0';
                 
         if (shift_level = "0000") then
             shift_value <= "00000000" & sub_currentPixel;
@@ -652,15 +638,15 @@ begin
             when S9 =>
                 current_pixel_value_load <= '1';
             when S10 =>
-
-                 
-            when S11 =>
-            when S11bis =>
+ 
+            when S11 =>   
                 
-                new_pixel_value_load <= '1';  
+            when S11bis =>
+            
             when S12 => 
                 current_pixel_value_load <= '1';
             when S_FINAL =>
+            
         end case;
     end process;
                                
