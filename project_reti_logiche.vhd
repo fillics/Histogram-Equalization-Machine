@@ -71,7 +71,7 @@ architecture Behavioral of project_reti_logiche is
         signal o_current_pixel_value, sub_currentPixel: std_logic_vector(7 downto 0) := "00000000";
         signal current_pixel_value_load, comparatore_sel : std_logic; 
         signal shift_value, mux_comparatore: std_logic_vector(15 downto 0) := "0000000000000000";
-
+     
 
         type S is (S0, S1, S2, S3, S_LOOP, S5, S5bis, S6, S7, S8, S9, S10, S11, S11bis, S12, S_FINAL);
         signal cur_state, next_state : S;
@@ -260,7 +260,7 @@ begin
         o_done <= '0'; 
         case cur_state is  
             when S0 =>
-                 
+                                                 
             when S1 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
@@ -305,6 +305,7 @@ begin
                 new_roAddr_sel <= '1';
                 contatore_sel <= '1';
                 roAddr_sel <= '1';
+                
             when S11 =>
                 new_roAddr_sel <= '1';
                 mux_definitivo_sel <= '1'; 
@@ -325,7 +326,8 @@ begin
                 contatore_sel <= '1';
                 roAddr_sel <= '1';
             when S_FINAL =>
-                o_done <= '1';                                 
+                o_done <= '1';
+                o_en <= '0';                                 
         end case;
     end process; 
     
@@ -498,7 +500,8 @@ begin
         pixelMin2_sel <= '0';
         
         delta_value_load <= '0'; 
-        shift_level_load <= '0';  
+        shift_level_load <= '0'; 
+         
               
         --valore di o_floor in base a delta_value_sum
         if (delta_value_sum = "000000001") then
@@ -581,8 +584,7 @@ begin
             when S9 =>
                 pixelIn_load <= '1';
                 shift_level_load <= '1';
-            when S10 => 
-                 
+            when S10 =>   
             when S11 =>
             when S11bis =>
             when S12 =>                                                
@@ -591,18 +593,19 @@ begin
     end process;
   
     ------------------------------------------ NEW PIXEL VALUE -----------------------------------------
-    comparatore_sel <= '1' when (shift_value < "0000000011111111") else '0';
+    comparatore_sel <= '1' when (shift_value <= "0000000011111111") else '0';
     
     sub_currentPixel <= o_current_pixel_value - o_pixelMin;
     
     with comparatore_sel select
         mux_comparatore <= "0000000011111111" when '0',
-                    shift_value when '1',
-                    "XXXXXXXXXXXXXXXX" when others; 
+                        shift_value when '1',
+                        "XXXXXXXXXXXXXXXX" when others; 
                                  
     process(cur_state)
         begin
         current_pixel_value_load <= '0';
+        --comparatore_sel <= '0';
                 
         if (shift_level = "0000") then
             shift_value <= "00000000" & sub_currentPixel;
@@ -622,6 +625,8 @@ begin
             shift_value <= "0" & sub_currentPixel & "0000000";
         elsif(shift_level = "1000") then
             shift_value <= sub_currentPixel & "00000000";
+        else 
+            shift_value <= "XXXXXXXXXXXXXXXX";
         end if;
 
         case cur_state is 
@@ -637,12 +642,9 @@ begin
             when S8 =>
             when S9 =>
                 current_pixel_value_load <= '1';
-            when S10 =>
- 
-            when S11 =>   
-                
+            when S10 => 
+            when S11 =>                   
             when S11bis =>
-            
             when S12 => 
                 current_pixel_value_load <= '1';
             when S_FINAL =>
