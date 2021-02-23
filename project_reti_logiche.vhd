@@ -73,7 +73,7 @@ architecture Behavioral of project_reti_logiche is
         signal shift_value: std_logic_vector(15 downto 0) := "0000000000000000";
      
 
-        type S is (S0, S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S_FINAL);
+        type S is (S0, S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S_FINAL,SPROVA);
         signal cur_state, next_state : S;
         
         
@@ -208,7 +208,11 @@ begin
                  
             when S3 =>
                 roAddr_sel <= '1';
+                roAddr_load <= '1';            
+           when SPROVA =>
+                roAddr_sel <= '1';
                 roAddr_load <= '1';
+                
             when S4 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
@@ -271,7 +275,7 @@ begin
     
     
      -- definizione della macchina a stati
-     process(cur_state, i_start, o_end_colonne, o_end_righe, o_end_contatore)
+     process(cur_state, i_start, o_end_colonne, o_end_righe, o_end_contatore, o_colonneIn, o_righeAgg)
         begin    
         next_state <= cur_state;
             case cur_state is 
@@ -284,8 +288,11 @@ begin
                 when S2 =>
                     next_state <= S3;
                 when S3 =>
-                    next_state <= S4;
-                    
+                    if o_colonneIn = "00000001" then
+                        next_state <= SPROVA;  
+                    else
+                        next_state <= S4;
+                    end if;        
                 when S4 =>
                     if o_end_colonne = '1' and o_end_righe = '1' then
                         next_state <= S7;  
@@ -298,6 +305,13 @@ begin
                     next_state <= S6;
                 when S6 =>
                     next_state <= S4; 
+                    
+                when SPROVA =>
+                    if o_righeAgg = "00000010" then
+                        next_state <= S7;                  
+                    else
+                        next_state <= SPROVA;
+                    end if;
                 when S7 =>
                     next_state <= S8;
                 when S8 =>
@@ -311,7 +325,7 @@ begin
                 when S12 =>
                     next_state <= S13;
                 when S13 =>
-                    if(o_end_contatore = '0') then
+                    if o_end_contatore = '0' then
                         next_state <= S14;
                     else
                         next_state <= S_FINAL;
@@ -332,6 +346,7 @@ begin
     
     -- definizione comparatori delle righe e colonne
     o_end_righe <= '1' when (o_righeAgg = "00000001") else '0';
+    
     o_end_colonne <= '1' when (o_colonneAgg = "00000010" ) else '0';
     
     -- definizione dei mux relativi al #righe e #colonne
@@ -384,6 +399,9 @@ begin
                 colonneAgg_load <= '1';
               
             when S7 =>
+            when SPROVA =>
+                righeAgg_sel <= '1';
+                righeAgg_load <= '1';
             when S8 =>
             when S9 =>
             when S10 =>
@@ -481,7 +499,6 @@ begin
                 pixelMax2_sel <= '1';
                 pixelMax_load <= '1';
                 
-
             when S5 =>
                 pixelIn_load <= '1';
                 pixelMin_load <= '1';
@@ -525,6 +542,14 @@ begin
             when S13 =>
             when S14 =>                                                
             when S_FINAL =>
+            when SPROVA =>
+                pixelIn_load <= '1';
+                pixelMin_load <= '1';
+                
+                pixelMin2_sel <= '1';
+                
+                pixelMax2_sel <= '1';
+                pixelMax_load <= '1';
         end case;
     end process;
   
@@ -573,6 +598,7 @@ begin
             when S4 =>
             when S5 =>
             when S6 =>
+            when SPROVA =>
             when S7 =>
             when S8 =>
             when S9 =>
