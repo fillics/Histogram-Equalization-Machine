@@ -73,10 +73,9 @@ architecture Behavioral of project_reti_logiche is
         signal shift_value: std_logic_vector(15 downto 0) := "0000000000000000";
      
 
-        type S is (S0, S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S_FINAL,SPROVA);
+        type S is (S0, S1, S2, S3, S_EXC, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S_FINAL);
         signal cur_state, next_state : S;
-        
-        
+          
 begin
     -- processo per il clock
     process(i_clk, i_rst) 
@@ -200,23 +199,19 @@ begin
                 roAddr_load <= '1';           
             when S1 =>
                 roAddr_sel <= '1';
-                roAddr_load <= '1';
-                
+                roAddr_load <= '1';             
             when S2 =>
                 roAddr_sel <= '1';
-                roAddr_load <= '1';
-                 
+                roAddr_load <= '1';                 
             when S3 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';            
-           when SPROVA =>
+           when S_EXC =>
                 roAddr_sel <= '1';
-                roAddr_load <= '1';
-                
+                roAddr_load <= '1';               
             when S4 =>
                 roAddr_sel <= '1';
-                roAddr_load <= '1';
-                
+                roAddr_load <= '1'; 
             when S5 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '0';
@@ -245,8 +240,7 @@ begin
                 mux_definitivo_sel <= '1'; 
                 new_roAddr_sel <= '1';
                 contatore_sel <= '1';
-                roAddr_sel <= '1';
-                
+                roAddr_sel <= '1';                
             when S12 =>
                 new_roAddr_sel <= '1';
                 mux_definitivo_sel <= '1'; 
@@ -266,8 +260,7 @@ begin
                 new_roAddr_sel <= '1';
                 contatore_sel <= '1';
                 roAddr_sel <= '1';
-            when S_FINAL =>
-                
+            when S_FINAL =>               
                 o_done <= '1';
                 o_en <= '0';                                 
         end case;
@@ -289,7 +282,7 @@ begin
                     next_state <= S3;
                 when S3 =>
                     if o_colonneIn = "00000001" then
-                        next_state <= SPROVA;  
+                        next_state <= S_EXC;  
                     else
                         next_state <= S4;
                     end if;        
@@ -305,12 +298,11 @@ begin
                     next_state <= S6;
                 when S6 =>
                     next_state <= S4; 
-                    
-                when SPROVA =>
+                when S_EXC =>
                     if o_righeAgg = "00000010" then
                         next_state <= S7;                  
                     else
-                        next_state <= SPROVA;
+                        next_state <= S_EXC;
                     end if;
                 when S7 =>
                     next_state <= S8;
@@ -339,14 +331,12 @@ begin
     end process;  
     
     ------------------------------------------ RIGHE E COLONNE -----------------------------------------
-
     -- definizione dei sottrattori per decrementare #righe e #colonne
     sub_colonne <= o_colonneAgg - "00000001"; 
     sub_righe <= o_righeAgg - "00000001";
     
     -- definizione comparatori delle righe e colonne
-    o_end_righe <= '1' when (o_righeAgg = "00000001") else '0';
-    
+    o_end_righe <= '1' when (o_righeAgg = "00000001") else '0';   
     o_end_colonne <= '1' when (o_colonneAgg = "00000010" ) else '0';
     
     -- definizione dei mux relativi al #righe e #colonne
@@ -359,7 +349,6 @@ begin
         mux_colonneAgg <= o_colonneIn when '0',
                     sub_colonne when '1',
                     "XXXXXXXX" when others;
-    
     
     
     -- processo per la gestione di righe e colonne
@@ -399,7 +388,7 @@ begin
                 colonneAgg_load <= '1';
               
             when S7 =>
-            when SPROVA =>
+            when S_EXC =>
                 righeAgg_sel <= '1';
                 righeAgg_load <= '1';
             when S8 =>
@@ -414,8 +403,7 @@ begin
     end process;     
 
 
-    ------------------------------------------ MAX E MIN -----------------------------------------
-    -- multiplexer di max e min    
+    ------------------------------------------ MAX E MIN -----------------------------------------   
      with pixelMax1_sel select
         mux1_pixelMax <= o_pixelMax when '0',
                     o_pixelIn when '1',
@@ -425,8 +413,7 @@ begin
         mux2_pixelMax <= "00000000" when '0',
                     mux1_pixelMax when '1',
                     "XXXXXXXX" when others;   
-                                 
-                                     
+                                                            
      with pixelMin1_sel select
         mux1_pixelMin <= o_pixelMin when '0',
                     o_pixelIn when '1',
@@ -542,7 +529,7 @@ begin
             when S13 =>
             when S14 =>                                                
             when S_FINAL =>
-            when SPROVA =>
+            when S_EXC =>
                 pixelIn_load <= '1';
                 pixelMin_load <= '1';
                 
@@ -566,7 +553,6 @@ begin
     process(cur_state)
         begin
         current_pixel_value_load <= '0';
-        --comparatore_sel <= '0';
                 
         if (shift_level = "0000") then
             shift_value <= "00000000" & sub_currentPixel;
@@ -598,7 +584,7 @@ begin
             when S4 =>
             when S5 =>
             when S6 =>
-            when SPROVA =>
+            when S_EXC =>
             when S7 =>
             when S8 =>
             when S9 =>
