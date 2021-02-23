@@ -332,7 +332,7 @@ begin
     
     -- definizione comparatori delle righe e colonne
     o_end_righe <= '1' when (o_righeAgg = "00000001") else '0';
-    o_end_colonne <= '1' when (o_colonneAgg = "00000010") else '0';
+    o_end_colonne <= '1' when (o_colonneAgg = "00000010" ) else '0';
     
     -- definizione dei mux relativi al #righe e #colonne
     with righeAgg_sel select
@@ -362,14 +362,14 @@ begin
             when S0 =>
             
             when S1 =>
-                righeIn_load <= '1';
-
-            when S2 =>
-                righeAgg_load <= '1';
                 colonneIn_load <= '1';
 
-            when S3 =>
+            when S2 =>
                 colonneAgg_load <= '1';
+                righeIn_load <= '1';
+
+            when S3 =>
+                righeAgg_load <= '1';
 
             when S4 =>
                 colonneAgg_sel <= '1';
