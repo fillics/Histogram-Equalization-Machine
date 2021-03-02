@@ -73,7 +73,7 @@ architecture Behavioral of project_reti_logiche is
         signal shift_value: std_logic_vector(15 downto 0) := "0000000000000000";
      
 
-        type S is (S0, S1, S2, S3, S_EXC, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S_FINAL);
+        type S is (S0, S1, S2, S3, S_EXC, SP, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S_FINAL);
         signal cur_state, next_state : S;
           
 begin
@@ -82,11 +82,10 @@ begin
         begin         
             if(i_rst = '1') then             
                 cur_state <= S0;
-                o_roAddr <= "0000000000000000"; 
+                o_roAddr <= "0000000000000000";
                 o_pixelMax <= "00000000"; 
-                o_pixelMin <= "11111111"; 
-                --o_data <= mux_comparatore(7 downto 0);  
-  
+                o_pixelMin <= "11111111";
+
             elsif i_clk'event and i_clk = '1' then             
                 cur_state <= next_state;
                 if(roAddr_load = '1') then
@@ -205,7 +204,10 @@ begin
                 roAddr_load <= '1';                 
             when S3 =>
                 roAddr_sel <= '1';
-                roAddr_load <= '1';            
+                roAddr_load <= '1';   
+           when SP =>
+                roAddr_sel <= '1';
+          
            when S_EXC =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';               
@@ -268,7 +270,7 @@ begin
     
     
      -- definizione della macchina a stati
-     process(cur_state, i_start, o_end_colonne, o_end_righe, o_end_contatore, o_colonneIn, o_righeAgg)
+     process(cur_state, i_start, o_end_colonne, o_end_righe, o_end_contatore, o_colonneIn, o_righeAgg, o_righeIn)
         begin    
         next_state <= cur_state;
             case cur_state is 
@@ -281,8 +283,10 @@ begin
                 when S2 =>
                     next_state <= S3;
                 when S3 =>
-                    if o_colonneIn = "00000001" then
+                    if o_colonneIn = "00000001" and o_righeIn /= "00000001" then
                         next_state <= S_EXC;  
+                    elsif o_colonneIn = "00000001" and o_righeIn = "00000001" then
+                        next_state <= SP;
                     else
                         next_state <= S4;
                     end if;        
@@ -298,9 +302,11 @@ begin
                     next_state <= S6;
                 when S6 =>
                     next_state <= S4; 
+                when SP =>
+                    next_state <= S7; 
                 when S_EXC =>
                     if o_righeAgg = "00000010" then
-                        next_state <= S7;                  
+                        next_state <= S7;       
                     else
                         next_state <= S_EXC;
                     end if;
@@ -388,6 +394,7 @@ begin
                 colonneAgg_load <= '1';
               
             when S7 =>
+            when SP =>
             when S_EXC =>
                 righeAgg_sel <= '1';
                 righeAgg_load <= '1';
@@ -504,6 +511,14 @@ begin
                 pixelMax2_sel <= '1';
                 pixelMax_load <= '1';
                            
+            when SP =>
+                --pixelIn_load <= '1';
+                pixelMin_load <= '1';
+                
+                pixelMin2_sel <= '1';
+                
+                --pixelMax2_sel <= '1';
+                --pixelMax_load <= '1';
             when S7 =>
                 pixelIn_load <= '1';
                 pixelMin_load <= '1';
@@ -521,7 +536,7 @@ begin
                 pixelIn_load <= '1';
                 
             when S10 =>
-                pixelIn_load <= '1';
+                --pixelIn_load <= '1';
                 shift_level_load <= '1';
                 
             when S11 =>   
@@ -541,7 +556,7 @@ begin
     end process;
   
     ------------------------------------------ NEW PIXEL VALUE -----------------------------------------
-    comparatore_sel <= '1' when (shift_value <= "0000000011111111") else '0';
+    comparatore_sel <= '1' when (shift_value < "0000000011111111") else '0';
     
     sub_currentPixel <= o_current_pixel_value - o_pixelMin;
     
@@ -586,6 +601,7 @@ begin
             when S6 =>
             when S_EXC =>
             when S7 =>
+            when SP =>
             when S8 =>
             when S9 =>
             when S10 =>
