@@ -420,10 +420,18 @@ begin
     -- definizione sommatore per calcolare delta_value_sum = deltavalue + 1
     delta_value_sum <= "000000001" + delta_value;
     
+    --segnali utili al calcolo del new_pixel_value
+    comparatore_sel <= '1' when (shift_value < "0000000011111111") else '0';
+    
+    sub_currentPixel <= o_current_pixel_value - o_pixelMin;
+    
+    with comparatore_sel select
+        o_data <= "11111111" when '0',
+                    shift_value(7 downto 0) when '1',
+                    "XXXXXXXX" when others; 
   
     process(cur_state)
-        begin
-        
+        begin       
         pixelIn_load <= '0';
         pixelMin_load <= '0';
         pixelMax_load <= '0';
@@ -433,7 +441,9 @@ begin
         
         delta_value_load <= '0'; 
         shift_level_load <= '0'; 
-              
+             
+        current_pixel_value_load <= '0';
+ 
         --valore di o_floor in base a delta_value_sum
         if (delta_value_sum = "000000001") then
             o_floor <= "0000"; --floor = 0
@@ -455,6 +465,28 @@ begin
             o_floor <= "1000"; --floor = 8
         end if;
 
+        --valore di shift_value in funzione di sub_current_pixel e shift_level        
+        if (shift_level = "0000") then
+            shift_value <= "00000000" & sub_currentPixel;
+        elsif(shift_level = "0001") then
+            shift_value <= "0000000" & sub_currentPixel & "0";
+        elsif(shift_level = "0010") then
+            shift_value <= "000000" & sub_currentPixel & "00";
+        elsif(shift_level = "0011") then
+            shift_value <= "00000" & sub_currentPixel & "000";
+        elsif(shift_level = "0100") then
+            shift_value <= "0000" & sub_currentPixel & "0000";
+        elsif(shift_level = "0101") then
+            shift_value <= "000" & sub_currentPixel & "00000";
+        elsif(shift_level = "0110") then
+            shift_value <= "00" & sub_currentPixel & "000000";
+        elsif(shift_level = "0111") then
+            shift_value <= "0" & sub_currentPixel & "0000000";
+        elsif(shift_level = "1000") then
+            shift_value <= sub_currentPixel & "00000000";
+        else 
+            shift_value <= "XXXXXXXXXXXXXXXX";
+        end if;
         case cur_state is 
             when S0 =>           
             when S1 =>
@@ -502,74 +534,17 @@ begin
                 pixelIn_load <= '1';               
             when S9 =>
                 pixelIn_load <= '1';              
-            when S10 =>         
+            when S10 => 
+                current_pixel_value_load <= '1';        
                 shift_level_load <= '1';             
             when S11 =>   
             when S12 =>
             when S13 =>
-            when S14 =>                                                
+            when S14 => 
+                current_pixel_value_load <= '1';                                               
             when S_FINAL =>
         end case;
     end process;
   
-    ------------------------------------------ GESTIONE NEW PIXEL VALUE -----------------------------------------
-    comparatore_sel <= '1' when (shift_value < "0000000011111111") else '0';
-    
-    sub_currentPixel <= o_current_pixel_value - o_pixelMin;
-    
-    with comparatore_sel select
-        o_data <= "11111111" when '0',
-                    shift_value(7 downto 0) when '1',
-                    "XXXXXXXX" when others; 
-                                 
-    process(cur_state)
-        begin
-        current_pixel_value_load <= '0';
-                
-        if (shift_level = "0000") then
-            shift_value <= "00000000" & sub_currentPixel;
-        elsif(shift_level = "0001") then
-            shift_value <= "0000000" & sub_currentPixel & "0";
-        elsif(shift_level = "0010") then
-            shift_value <= "000000" & sub_currentPixel & "00";
-        elsif(shift_level = "0011") then
-            shift_value <= "00000" & sub_currentPixel & "000";
-        elsif(shift_level = "0100") then
-            shift_value <= "0000" & sub_currentPixel & "0000";
-        elsif(shift_level = "0101") then
-            shift_value <= "000" & sub_currentPixel & "00000";
-        elsif(shift_level = "0110") then
-            shift_value <= "00" & sub_currentPixel & "000000";
-        elsif(shift_level = "0111") then
-            shift_value <= "0" & sub_currentPixel & "0000000";
-        elsif(shift_level = "1000") then
-            shift_value <= sub_currentPixel & "00000000";
-        else 
-            shift_value <= "XXXXXXXXXXXXXXXX";
-        end if;
-
-        case cur_state is 
-            when S0 =>
-            when S1 =>
-            when S2 =>
-            when S3 =>
-            when S4 =>
-            when S5 =>
-            when S6 =>
-            when S_1xN =>
-            when S7 =>
-            when S_1x1 =>
-            when S8 =>
-            when S9 =>
-            when S10 =>
-                current_pixel_value_load <= '1';
-            when S11 => 
-            when S12 =>                   
-            when S13 =>
-            when S14 => 
-                current_pixel_value_load <= '1';
-            when S_FINAL =>           
-        end case;
-    end process;
                                
 end Behavioral;
