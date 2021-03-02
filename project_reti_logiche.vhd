@@ -47,7 +47,7 @@ architecture Behavioral of project_reti_logiche is
         signal mux_definitivo_sel: std_logic;
 
         -- segnali per il calcolo di righe e colonne e termine ciclo di lettura pixel
-        signal righeIn_load, righeAgg_load, righeAgg_sel, colonneIn_load, colonneAgg_sel, colonneAgg_load, o_end_righe, o_end_colonne: std_logic;
+        signal righeIn_load, righeAgg_load, righeAgg_sel, colonneIn_load, colonneAgg_sel, colonneAgg_load: std_logic;
         signal o_righeAgg, o_colonneAgg, o_righeIn, o_colonneIn: std_logic_vector(7 downto 0) := "00000000"; --segnale in uscita dei registri
         signal mux_righeAgg, mux_colonneAgg: std_logic_vector (7 downto 0); --segnale in uscita dai vari multiplexer dei valori aggiornati
         signal sub_righe, sub_colonne: std_logic_vector (7 downto 0);  --sottrattori
@@ -73,11 +73,11 @@ architecture Behavioral of project_reti_logiche is
         signal shift_value: std_logic_vector(15 downto 0) := "0000000000000000";
      
 
-        type S is (S0, S1, S2, S3, S_EXC, SP, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S_FINAL);
+        type S is (S0, S1, S2, S3, S_1xN, S_1x1, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S_FINAL);
         signal cur_state, next_state : S;
           
 begin
-    -- processo per il clock
+------------------------------------------ PROCESSO PER IL CLOCK -----------------------------------------
     process(i_clk, i_rst) 
         begin         
             if(i_rst = '1') then             
@@ -93,7 +93,7 @@ begin
                 end if;
                 
                 if(righeIn_load = '1') then
-                        o_righeIn <= i_data;
+                    o_righeIn <= i_data;
                 elsif (colonneIn_load = '1') then
                     o_colonneIn <= i_data;
                 end if; 
@@ -109,6 +109,7 @@ begin
                 if(new_dim_load = '1') then
                     new_dim <= o_roAddr;
                 end if;
+                
                 if(contatore_load = '1') then
                     contatore <= mux_contatore;
                 end if;
@@ -142,7 +143,75 @@ begin
             end if;    
     end process;
     
-    --segnali per il cambio di inidirizzo dell'o_address durante l'assegnazione del nuovo valore del pixel
+------------------------------------------ MACCHINA A STATI -----------------------------------------
+     process(cur_state, i_start, o_end_contatore, o_colonneIn, o_righeAgg, o_righeIn, o_colonneAgg)
+        begin    
+        next_state <= cur_state;
+            case cur_state is 
+                when S0 =>
+                    if i_start = '1' then
+                        next_state <= S1;
+                    end if;
+                when S1 =>
+                    next_state <= S2;
+                when S2 =>
+                    next_state <= S3;
+                when S3 =>
+                    if o_colonneIn = "00000001" and o_righeIn /= "00000001" then
+                        next_state <= S_1xN;  
+                    elsif o_colonneIn = "00000001" and o_righeIn = "00000001" then 
+                        next_state <= S_1x1;
+                    else
+                        next_state <= S4;
+                    end if;        
+                when S4 =>
+                    if o_colonneAgg = "00000010" and o_righeAgg = "00000001" then
+                        next_state <= S7;  
+                    elsif o_colonneAgg = "00000010" and o_righeAgg /= "00000001" then
+                        next_state <= S5;
+                    else
+                        next_state <= S4;
+                    end if;
+                when S5 =>
+                    next_state <= S6;
+                when S6 =>
+                    next_state <= S4; 
+                when S_1x1 =>
+                    next_state <= S7; 
+                when S_1xN =>
+                    if o_righeAgg = "00000010" then
+                        next_state <= S7;       
+                    else
+                        next_state <= S_1xN;
+                    end if;
+                when S7 =>
+                    next_state <= S8;
+                when S8 =>
+                    next_state <= S9;
+                when S9 =>
+                    next_state <= S10;
+                when S10 =>
+                    next_state <= S11;
+                when S11 => 
+                    next_state <= S12;
+                when S12 =>
+                    next_state <= S13;
+                when S13 =>
+                    if o_end_contatore = '0' then
+                        next_state <= S14;
+                    else
+                        next_state <= S_FINAL;
+                    end if;
+                when S14 =>
+                    next_state <= S11;                    
+                when S_FINAL =>
+                    next_state <= S0;                    
+            end case;
+    end process;  
+    
+    
+    ------------------------------------------ GESTIONE DATI E INDIRIZZI  -----------------------------------------
+    --segnali per il cambio di indirizzo dell'o_address durante l'assegnazione del nuovo valore del pixel
     o_address <= mux_definitivo;
     
     sub_contatore <= contatore - "0000000000000001";
@@ -175,7 +244,6 @@ begin
                     sub_contatore when '1',
                     "XXXXXXXXXXXXXXXX" when others;  
                                                 
-    -- processo per la gestione dell'o_address, dell'enable e dell'o_done e del caricamento di o_data
     process(cur_state)
         begin
         roAddr_sel <= '0';
@@ -194,7 +262,6 @@ begin
         o_done <= '0'; 
         case cur_state is  
             when S0 =>
-                roAddr_sel <= '0';
                 roAddr_load <= '1';           
             when S1 =>
                 roAddr_sel <= '1';
@@ -205,10 +272,9 @@ begin
             when S3 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';   
-           when SP =>
+           when S_1x1 =>
                 roAddr_sel <= '1';
-          
-           when S_EXC =>
+           when S_1xN =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';               
             when S4 =>
@@ -216,12 +282,10 @@ begin
                 roAddr_load <= '1'; 
             when S5 =>
                 roAddr_sel <= '1';
-                roAddr_load <= '0';
            when S6 =>
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
             when S7 =>
-                roAddr_sel <= '0';
                 roAddr_load <= '1';
                 new_dim_load <= '1';
             when S8 =>
@@ -231,7 +295,6 @@ begin
             when S9 =>
                 roAddr_sel <= '1';
                 new_roAddr_load <= '1';
-                new_roAddr_sel <= '0';
                 contatore_sel <= '1';
             when S10 =>
                 mux_definitivo_sel <= '1'; 
@@ -251,7 +314,6 @@ begin
                 o_we <= '1';
             when S13 =>
                 new_roAddr_sel <= '1';
-                mux_definitivo_sel <= '0'; 
                 roAddr_sel <= '1';
                 roAddr_load <= '1';
                 new_roAddr_load <= '1';
@@ -268,82 +330,11 @@ begin
         end case;
     end process; 
     
-    
-     -- definizione della macchina a stati
-     process(cur_state, i_start, o_end_colonne, o_end_righe, o_end_contatore, o_colonneIn, o_righeAgg, o_righeIn)
-        begin    
-        next_state <= cur_state;
-            case cur_state is 
-                when S0 =>
-                    if i_start = '1' then
-                        next_state <= S1;
-                    end if;
-                when S1 =>
-                    next_state <= S2;
-                when S2 =>
-                    next_state <= S3;
-                when S3 =>
-                    if o_colonneIn = "00000001" and o_righeIn /= "00000001" then
-                        next_state <= S_EXC;  
-                    elsif o_colonneIn = "00000001" and o_righeIn = "00000001" then
-                        next_state <= SP;
-                    else
-                        next_state <= S4;
-                    end if;        
-                when S4 =>
-                    if o_end_colonne = '1' and o_end_righe = '1' then
-                        next_state <= S7;  
-                    elsif o_end_colonne = '1' and o_end_righe = '0' then
-                        next_state <= S5;
-                    else
-                        next_state <= S4;
-                    end if;
-                when S5 =>
-                    next_state <= S6;
-                when S6 =>
-                    next_state <= S4; 
-                when SP =>
-                    next_state <= S7; 
-                when S_EXC =>
-                    if o_righeAgg = "00000010" then
-                        next_state <= S7;       
-                    else
-                        next_state <= S_EXC;
-                    end if;
-                when S7 =>
-                    next_state <= S8;
-                when S8 =>
-                    next_state <= S9;
-                when S9 =>
-                    next_state <= S10;
-                when S10 =>
-                    next_state <= S11;
-                when S11 => 
-                    next_state <= S12;
-                when S12 =>
-                    next_state <= S13;
-                when S13 =>
-                    if o_end_contatore = '0' then
-                        next_state <= S14;
-                    else
-                        next_state <= S_FINAL;
-                    end if;
-                when S14 =>
-                    next_state <= S11;                    
-        
-                when S_FINAL =>
-                    next_state <= S0;                    
-            end case;
-    end process;  
-    
-    ------------------------------------------ RIGHE E COLONNE -----------------------------------------
+
+    ------------------------------------------ GESTIONE RIGHE E COLONNE -----------------------------------------
     -- definizione dei sottrattori per decrementare #righe e #colonne
     sub_colonne <= o_colonneAgg - "00000001"; 
     sub_righe <= o_righeAgg - "00000001";
-    
-    -- definizione comparatori delle righe e colonne
-    o_end_righe <= '1' when (o_righeAgg = "00000001") else '0';   
-    o_end_colonne <= '1' when (o_colonneAgg = "00000010" ) else '0';
     
     -- definizione dei mux relativi al #righe e #colonne
     with righeAgg_sel select
@@ -357,10 +348,8 @@ begin
                     "XXXXXXXX" when others;
     
     
-    -- processo per la gestione di righe e colonne
     process(cur_state)
-        begin
-                
+        begin       
         righeIn_load <= '0';
         righeAgg_sel <= '0';
         colonneIn_load <= '0';
@@ -370,32 +359,25 @@ begin
         
         case cur_state is 
             when S0 =>
-            
             when S1 =>
                 colonneIn_load <= '1';
-
             when S2 =>
                 colonneAgg_load <= '1';
                 righeIn_load <= '1';
-
             when S3 =>
                 righeAgg_load <= '1';
-
             when S4 =>
                 colonneAgg_sel <= '1';
                 colonneAgg_load <= '1';
-
             when S5 =>
                 righeAgg_sel <= '1';
                 righeAgg_load <= '1';
-                colonneAgg_load <= '1';
-                
+                colonneAgg_load <= '1';               
             when S6 =>
                 colonneAgg_load <= '1';
-              
             when S7 =>
-            when SP =>
-            when S_EXC =>
+            when S_1x1 =>
+            when S_1xN =>
                 righeAgg_sel <= '1';
                 righeAgg_load <= '1';
             when S8 =>
@@ -409,8 +391,8 @@ begin
         end case;
     end process;     
 
-
-    ------------------------------------------ MAX E MIN -----------------------------------------   
+    ------------------------------------------ GESTIONE MAX E MIN E CALCOLO DELTAVALUE - SHIFTLEVEL -----------------------------------------   
+     -- multiplexer per la gestione di massimo e minimo
      with pixelMax1_sel select
         mux1_pixelMax <= o_pixelMax when '0',
                     o_pixelIn when '1',
@@ -438,7 +420,7 @@ begin
     -- definizione sommatore per calcolare delta_value_sum = deltavalue + 1
     delta_value_sum <= "000000001" + delta_value;
     
-        -- processo per determinare max e min pixel e calcolare i delta_value e lo shift level  
+  
     process(cur_state)
         begin
         
@@ -451,7 +433,6 @@ begin
         
         delta_value_load <= '0'; 
         shift_level_load <= '0'; 
-         
               
         --valore di o_floor in base a delta_value_sum
         if (delta_value_sum = "000000001") then
@@ -480,90 +461,66 @@ begin
             when S2 =>
             when S3 =>
                 pixelIn_load <= '1';
-                pixelMin_load <= '1';
-                
+                pixelMin_load <= '1';    
                 pixelMax2_sel <= '1';
                 pixelMax_load <= '1';
             when S4 =>
                 pixelIn_load <= '1';
-                pixelMin_load <= '1';
-                
-                pixelMin2_sel <= '1';
-                
+                pixelMin_load <= '1';               
+                pixelMin2_sel <= '1';               
                 pixelMax2_sel <= '1';
-                pixelMax_load <= '1';
-                
+                pixelMax_load <= '1';               
             when S5 =>
                 pixelIn_load <= '1';
-                pixelMin_load <= '1';
-                
+                pixelMin_load <= '1';               
                 pixelMin2_sel <= '1';
-                
                 pixelMax2_sel <= '1';
-                pixelMax_load <= '1';
-                
+                pixelMax_load <= '1';                
             when S6 =>
                 pixelIn_load <= '1';
-                pixelMin_load <= '1';
-                
-                pixelMin2_sel <= '1';
-                
+                pixelMin_load <= '1';               
+                pixelMin2_sel <= '1';              
                 pixelMax2_sel <= '1';
-                pixelMax_load <= '1';
-                           
-            when SP =>
-                --pixelIn_load <= '1';
-                pixelMin_load <= '1';
-                
+                pixelMax_load <= '1';                           
+            when S_1x1 =>
+                pixelMin_load <= '1';             
                 pixelMin2_sel <= '1';
-                
-                --pixelMax2_sel <= '1';
-                --pixelMax_load <= '1';
+            when S_1xN =>
+                pixelIn_load <= '1';
+                pixelMin_load <= '1'; 
+                pixelMin2_sel <= '1';                
+                pixelMax2_sel <= '1';
+                pixelMax_load <= '1';               
             when S7 =>
                 pixelIn_load <= '1';
-                pixelMin_load <= '1';
-                
-                pixelMin2_sel <= '1';
-                
+                pixelMin_load <= '1';               
+                pixelMin2_sel <= '1';               
                 pixelMax2_sel <= '1';
-                pixelMax_load <= '1';
-                          
+                pixelMax_load <= '1';                         
             when S8 =>
                 delta_value_load <= '1'; 
-                pixelIn_load <= '1';
-                
+                pixelIn_load <= '1';               
             when S9 =>
-                pixelIn_load <= '1';
-                
-            when S10 =>
-                --pixelIn_load <= '1';
-                shift_level_load <= '1';
-                
+                pixelIn_load <= '1';              
+            when S10 =>         
+                shift_level_load <= '1';             
             when S11 =>   
             when S12 =>
             when S13 =>
             when S14 =>                                                
             when S_FINAL =>
-            when S_EXC =>
-                pixelIn_load <= '1';
-                pixelMin_load <= '1';
-                
-                pixelMin2_sel <= '1';
-                
-                pixelMax2_sel <= '1';
-                pixelMax_load <= '1';
         end case;
     end process;
   
-    ------------------------------------------ NEW PIXEL VALUE -----------------------------------------
+    ------------------------------------------ GESTIONE NEW PIXEL VALUE -----------------------------------------
     comparatore_sel <= '1' when (shift_value < "0000000011111111") else '0';
     
     sub_currentPixel <= o_current_pixel_value - o_pixelMin;
     
     with comparatore_sel select
         o_data <= "11111111" when '0',
-                        shift_value(7 downto 0) when '1',
-                        "XXXXXXXX" when others; 
+                    shift_value(7 downto 0) when '1',
+                    "XXXXXXXX" when others; 
                                  
     process(cur_state)
         begin
@@ -599,9 +556,9 @@ begin
             when S4 =>
             when S5 =>
             when S6 =>
-            when S_EXC =>
+            when S_1xN =>
             when S7 =>
-            when SP =>
+            when S_1x1 =>
             when S8 =>
             when S9 =>
             when S10 =>
@@ -611,8 +568,7 @@ begin
             when S13 =>
             when S14 => 
                 current_pixel_value_load <= '1';
-            when S_FINAL =>
-            
+            when S_FINAL =>           
         end case;
     end process;
                                
