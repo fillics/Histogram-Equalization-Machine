@@ -1,6 +1,13 @@
-\documentclass[12pt]{article}
+\documentclass[12pt, table, xcdraw]{article}
+
 \usepackage{amsmath}
 \usepackage[toc,page,header]{appendix}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{multirow}
+
+\renewcommand*\contentsname{Indice}
 
 \title{PROVA FINALE DI RETI LOGICHE}
 \date{Prof. William Fornaciari - AA: 2020/2021}
@@ -18,21 +25,126 @@
 
 \section{Introduzione}
 
-Hello World!
-\begin{equation*}
-  f(x) = x^2
-\end{equation*}
+\subsection{Scopo del progetto}
+Lo scopo del progetto è la realizzazione di un componente hardware, scritto in VHDL. Esso riceve in ingresso un'immagine in scala di grigi a 256 livelli e, dopo aver applicato un algoritmo di equalizzazione a ciascun pixel, scrive in output l'immagine equalizzata.\\
+Di seguito, un esempio di un'immagine 2x2 equalizzata (l'indirizzo dei dati in memoria verrà spiegato nel paragrafo 1.4).
 
-\subsection{Subsection}
+\begin{table}[h!]
+  \begin{center}
+    \
+	\begin{tabular}{cccccccccc}
+	0                                                        & 1                                                       & 2                                               & 3                                                & 4                                               & 5                                               & 6                                              & 7                                                & 8                                               & 9                                                \\ \hline
+	\rowcolor[HTML]{EFEFEF} 
+	\multicolumn{1}{|c|}{\cellcolor[HTML]{EFEFEF}\textbf{2}} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}\textbf{2}} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}46} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}131} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}62} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}89} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}0} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}255} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}64} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}172} \\ \hline
+	\end{tabular}
 
-Structuring a document is easy!
+  
+  \end{center}
+\end{table}
 
 
-\section{Prova}
-Ciao come va
+\subsection{Specifiche generali}
+L'algoritmo usato per l'equalizzazione delle immagini è una versione semplificata rispetto all'algoritmo standard. Esso può essere applicato solo a immagini in scala di grigi e per trasformare ogni pixel dell'immagine, esegue le seguenti operazioni:
 
-\section{Conclusione}
-Ciao come va
+\begin{flushleft}
+DELTA\_VALUE = MAX\_PIXEL\_VALUE – MIN\_PIXEL\_VALUE \\
+SHIFT\_LEVEL = (8 – FLOOR(LOG2(DELTA\_VALUE + 1))) \\
+TEMP\_PIXEL = (CURRENT\_PIXEL\_VALUE - MIN\_PIXEL\_VALUE) \textless\textless  SHIFT\_LEVEL \\
+NEW\_PIXEL\_VALUE = MIN( 255 , TEMP\_PIXEL) \\
+\end{flushleft}
+
+MAX\_PIXEL\_VALUE e MIN\_PIXEL\_VALUE rappresentano rispettivamente il massimo e il minimo valore dei pixel dell'immagine, CURRENT\_PIXEL\_VALUE rappresenta il valore del pixel da trasformare e NEW\_PIXEL\_VALUE rappresenta il valore del nuovo pixel in output. \\
+
+Il componente hardware è inoltre progettato per poter codificare più immagini, una dopo l'altra. Prima di codificare l'immagine successiva, però, l'algoritmo di equalizzazione deve essere stato applicato prima a tutti i pixel dell'immagine precedente.
+
+\newpage
+\subsection{Interfaccia del componente}
+L’interfaccia del componente, così come presentata nelle specifiche, è la seguente:
+
+\begin{tabbing}
+entity \= project\_reti\_logiche is \\
+	\> port $($ \= \\
+		\>\> i\_clk : in std\_logic; \\
+		\>\> i\_rst : in std\_logic; \\
+		\>\> i\_start : in std\_logic; \\ 
+		\>\> i\_data : in std\_logic\_vector (7 downto 0); \\ 
+		\>\> o\_address : out std\_logic\_vector (15 downto 0); \\ 
+		\>\> o\_done : out std\_logic; \\
+		\>\> o\_en : out std\_logic; \\ 
+		\>\> o\_we : out std\_logic; \\ 
+		\>\> o\_data : out std\_logic\_vector (7 downto 0) \\
+	\>$)$; \\
+end project\_reti\_logiche; \\
+
+\end{tabbing}
+In particolare:
+\begin{itemize}
+\item i\_clk: segnale di CLOCK in ingresso generato dal TestBench;
+\item i\_rst: segnale di RESET che inizializza la macchina pronta per ricevere il primo
+segnale di START;
+\item i\_start: segnale di START generato dal Test Bench;
+\item i\_data: segnale (vettore) che arriva dalla memoria in seguito ad una richiesta di
+lettura;
+\item o\_address: segnale (vettore) di uscita che manda l’indirizzo alla memoria;
+\item o\_done: segnale di uscita che comunica la fine dell’elaborazione e il dato di uscita
+scritto in memoria;
+\item o\_en: segnale di ENABLE da dover mandare alla memoria per poter comunicare
+(sia in lettura che in scrittura);
+\item o\_we: segnale di WRITE ENABLE da dover mandare alla memoria (=1) per poter
+scriverci. Per leggere da memoria esso deve essere 0;
+\item o\_data: segnale (vettore) di uscita dal componente verso la memoria.
+
+
+\end{itemize}
+
+
+
+\subsection{Dati e descrizione memoria}
+
+Le dimensioni dell'immagine, ciascuna di dimensione di 8 bit, sono memorizzati in una memoria con indirizzamento al Byte:
+\begin{itemize}
+\item Nell'indirizzo 0 viene salvato il numero di colonne (N-COL) dell'immagine.
+\item Nell'indirizzo 1 viene salvato il numero di righe (N-RIG) dell'immagine.
+\item A partire dall'indirizzo 2 vengono memorizzati i pixel dell'immagine, ciascuno di 8 bit.
+\item A partire dall'indirizzo 2+(N-COL*N-RIG) vengono memorizzati i pixel dell'immagine equalizzata.
+
+
+\end{itemize}
+
+
+\begin{table}[h!]
+\begin{center}
+\begin{tabular}{|
+>{\columncolor[HTML]{EFEFEF}}c |clll}
+\cline{1-1}
+\textbf{N\_COLONNE} & \multicolumn{4}{c}{Indirizzo 0}                     \\ \cline{1-1}
+\textbf{N\_RIGHE}   & \multicolumn{4}{c}{Indirizzo 1}                     \\ \cline{1-1}
+PIXEL\_1            & \multicolumn{4}{c}{Indirizzo 2}                     \\ \cline{1-1}
+...                 & \multicolumn{4}{l}{}                                \\ \cline{1-1}
+PIXEL\_N            & \multicolumn{4}{c}{}                                \\ \cline{1-1}
+NEW\_PIXEL\_1       & \multicolumn{4}{c}{Indirizzo 2+(N\_COL*N\_RIGHE)}   \\ \cline{1-1}
+...                 & \multicolumn{4}{c}{...}                             \\ \cline{1-1}
+NEW\_PIXEL\_N       & \multicolumn{4}{c}{Indirizzo 1+2*(N\_COL*N\_RIGHE)} \\ \cline{1-1}
+\end{tabular}
+\end{center}
+\end{table}
+
+La dimensione massima dell'immagine è 128x128 pixel. \\ \\
+
+
+\section{Design}
+\subsection{Stati della macchina}
+La macchina è composta da 17 stati, 
+\subsubsection{Processo gestione oaddress}
+
+
+
+\section{Risultati dei test}
+
+\section{Conclusioni}
+\subsection{Risultati della sintesi}
+\subsection{Ottimizzazioni}
+Nel progettare il componente hardware, abbiamo prestato particolare attenzione nel rimuovere tutti i latch presenti.
 
 
 \end{document}
