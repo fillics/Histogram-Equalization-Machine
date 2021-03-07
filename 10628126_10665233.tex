@@ -6,6 +6,14 @@
 \usepackage{booktabs}
 \usepackage{xcolor}
 \usepackage{multirow}
+\usepackage{graphicx}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{placeins}
+
+\usetikzlibrary{arrows,automata}
 
 \renewcommand*\contentsname{Indice}
 
@@ -46,18 +54,20 @@ Di seguito, un esempio di un'immagine 2x2 equalizzata (l'indirizzo dei dati in m
 \subsection{Specifiche generali}
 L'algoritmo usato per l'equalizzazione delle immagini è una versione semplificata rispetto all'algoritmo standard. Esso può essere applicato solo a immagini in scala di grigi e per trasformare ogni pixel dell'immagine, esegue le seguenti operazioni:
 
-\begin{flushleft}
-DELTA\_VALUE = MAX\_PIXEL\_VALUE – MIN\_PIXEL\_VALUE \\
-SHIFT\_LEVEL = (8 – FLOOR(LOG2(DELTA\_VALUE + 1))) \\
-TEMP\_PIXEL = (CURRENT\_PIXEL\_VALUE - MIN\_PIXEL\_VALUE) \textless\textless  SHIFT\_LEVEL \\
-NEW\_PIXEL\_VALUE = MIN( 255 , TEMP\_PIXEL) \\
-\end{flushleft}
+\begin{center}
 
-MAX\_PIXEL\_VALUE e MIN\_PIXEL\_VALUE rappresentano rispettivamente il massimo e il minimo valore dei pixel dell'immagine, CURRENT\_PIXEL\_VALUE rappresenta il valore del pixel da trasformare e NEW\_PIXEL\_VALUE rappresenta il valore del nuovo pixel in output. \\
+\textsc{delta\_value = max\_pixel\_value – min\_pixel\_value} \\
+\textsc{shift\_level = (8 – floor(log2(delta\_value + 1)))} \\
+\textsc{temp\_pixel = (current\_pixel\_value - min\_pixel\_value) \textless\textless  shift\_level} \\
+\textsc{new\_pixel\_value = min(255 , temp\_pixel)} \\
+\end{center}
+
+\textsc{max\_pixel\_value} e \textsc{min\_pixel\_value} rappresentano rispettivamente il massimo e il minimo valore dei pixel dell'immagine, \textsc{current\_pixel\_value} rappresenta il valore del pixel da trasformare e \textsc{new\_pixel\_value} rappresenta il valore del nuovo pixel in output. \\
 
 Il componente hardware è inoltre progettato per poter codificare più immagini, una dopo l'altra. Prima di codificare l'immagine successiva, però, l'algoritmo di equalizzazione deve essere stato applicato prima a tutti i pixel dell'immagine precedente.
 
 \newpage
+
 \subsection{Interfaccia del componente}
 L’interfaccia del componente, così come presentata nelle specifiche, è la seguente:
 
@@ -133,15 +143,127 @@ La dimensione massima dell'immagine è 128x128 pixel. \\ \\
 
 
 \section{Design}
-\subsection{Stati della macchina}
-La macchina è composta da 17 stati, 
-\subsubsection{Processo gestione oaddress}
+La macchina è composta da 18 stati. Qui di seguito è fornita una descrizione dei vari processi.
+\newpage
+\newenvironment{changemargin}[2]{%
+\begin{list}{}{%
+\setlength{\topsep}{0 pt}%
+\setlength{\leftmargin}{#1}%
+\setlength{\rightmargin}{#2}%
+\setlength{\listparindent}{\parindent}%
+\setlength{\itemindent}{\parindent}%
+\setlength{\parsep}{\parskip}%
+}%
+\item[]}{\end{list}}
+\begin{changemargin}{-3cm}{-1cm}
+
+\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+        scale = 1,transform shape]
+
+  \node[state,initial] (S0) {$S0$};
+  \node[state] (S1) [right of=S0] {$S1$};
+  \node[state] (S2) [right of=S1] {$S2$};
+  \node[state] (S3) [right of=S2] {$S3$};
+ \node[state] (S1xN) [below of=S3,  yshift = -1.5cm] {$S1xN$};
+  \node[state] (S1x1) [left of=S1xN, xshift = -2cm] {$S1x1$};
+  \node[state] (S4) [right of=S1xN] {$S4$};
+  \node[state] (S5) [right of=S4, xshift = 1cm] {$S5$};
+  \node[state] (S6) [below of=S5] {$S6$};
+  \node[state] (S7) [below of=S1xN] {$S7$};
+  \node[state] (S8) [below of=S7] {$S8$};
+  \node[state] (S9) [right of=S8] {$S9$};
+  \node[state] (S10) [right of=S9] {$S10$};
+  \node[state] (S11) [below of=S10] {$S11$};
+  \node[state] (S12) [below of=S11] {$S12$};
+  \node[state] (S13) [left of=S12] {$S13$};
+  \node[state] (S14) [above of=S13] {$S14$};
+  \node[state] (S_FINAL) [left of=S13, xshift = -8.97cm] {$S\_FINAL$};
+ 
+
+\path (S0) edge              node {$$} (S1)
+        (S1) edge              node {$$} (S2)
+        (S2) edge              node {$$} (S3)
+        (S3) edge              node {$tabella$ $NxN$} (S4)
+        (S3) edge  [left, pos = 0.4]            node {$tabella$ $1x1$} (S1x1)
+        (S3) edge   [left, pos = 0.8]        node {$tabella$ $1xN$} (S1xN)
+        (S4) edge  [below]            node {$fine$  $colonna$} (S5)
+        (S5) edge              node {$$} (S6)
+        (S6) edge              node {$$} (S4)
+        (S4) edge              node {$fine$ $pixel$} (S7)
+        (S1x1) edge              node {$$} (S7)
+        (S1xN) edge              node {$$} (S7)
+        (S7) edge              node {$$} (S8)
+        (S8) edge              node {$$} (S9)
+        (S9) edge              node {$$} (S10)
+        (S10) edge              node {$$} (S11)
+        (S11) edge              node {$$} (S12)
+        (S12) edge              node {$$} (S13)
+        (S13) edge  [left]            node {$o\_end\_contatore = '0'$} (S14)
+        (S13) edge  [left , below]            node {$o\_end\_contatore = '1'$} (S_FINAL)
+        (S14) edge              node {$$} (S11)
+        (S4) edge  [loop above, pos=.6, right=2pt]            node {$lettura$ $pixel$} (S4)
+			(S1xN) edge   [loop right]              node {$$} (S7)
+			(S_FINAL) edge node {$$} (S0);
+
+
+\end{tikzpicture}
+\end{changemargin}
+
+\subsection{Gestione dell'o\_address, dell'enable, dell'o\_done e del caricamento di o\_data:}
+
+Specificare che l'oaddress è uguale a mux definitivo che se uguale a 0 prende il valore di mux roaddr e se uguale a 1 prende il valore di new o roAddr, usando il segnale di mux definitivo sel.
+
+\begin{figure}[h!]
+  \includegraphics[width=\linewidth]{addr1.jpg}
+   \includegraphics[width=\linewidth]{addr2.jpg}
+  \caption{Gestione o\_address}
+  \label{fig:boat1}
+\end{figure}
+\FloatBarrier
+
+\subsection{Lettura dei pixel}
+Processo per la gestione del ciclo dedicato alla lettura di tutti i pixel tramite l'uso del numero di righe e colonne:
+
+\begin{figure}[h!]
+  \includegraphics[width=\linewidth]{righecolonne.jpg}
+  \caption{Gestione o\_address}
+  \label{fig:boat1}
+\end{figure}
+\FloatBarrier
+\newpage
+\subsection{Calcolo pixel massimo e minimo e applicazione algoritmo per trovare valore nuovo pixel}
+Processo dedicato alla determinazione del pixel con valore massimo e minimo, del delta\_value e dello shift\_level e del nuovo valore del pixel
 
 
 
+
+\begin{figure}[h!]
+\hspace*{-1.1in}
+  \includegraphics[width=.7\textwidth]{pixel.jpg}
+ \includegraphics[width=.7\textwidth]{shiftlevel.jpg}
+  \caption{Gestione o\_address}
+  \label{fig:boat1}
+\end{figure}
+
+
+\newpage
+\begin{figure}[h!]
+  \includegraphics[width=\linewidth]{odata.jpg}
+  \caption{Gestione o\_address}
+  \label{fig:boat1}
+\end{figure}
+\FloatBarrier
+
+
+
+
+\newpage
 \section{Risultati dei test}
 
+\newpage
 \section{Conclusioni}
+\newpage
+
 \subsection{Risultati della sintesi}
 \subsection{Ottimizzazioni}
 Nel progettare il componente hardware, abbiamo prestato particolare attenzione nel rimuovere tutti i latch presenti.
