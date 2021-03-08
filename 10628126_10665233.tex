@@ -89,20 +89,20 @@ end project\_reti\_logiche; \\
 \end{tabbing}
 In particolare:
 \begin{itemize}
-\item i\_clk: segnale di CLOCK in ingresso generato dal TestBench;
-\item i\_rst: segnale di RESET che inizializza la macchina pronta per ricevere il primo
+\item \texttt{i\_clk}: segnale di CLOCK in ingresso generato dal TestBench;
+\item \texttt{i\_rst}: segnale di RESET che inizializza la macchina pronta per ricevere il primo
 segnale di START;
-\item i\_start: segnale di START generato dal Test Bench;
-\item i\_data: segnale (vettore) che arriva dalla memoria in seguito ad una richiesta di
+\item \texttt{i\_start}: segnale di START generato dal Test Bench;
+\item \texttt{i\_data}: segnale (vettore) che arriva dalla memoria in seguito ad una richiesta di
 lettura;
-\item o\_address: segnale (vettore) di uscita che manda l’indirizzo alla memoria;
-\item o\_done: segnale di uscita che comunica la fine dell’elaborazione e il dato di uscita
+\item \texttt{o\_address}: segnale (vettore) di uscita che manda l’indirizzo alla memoria;
+\item \texttt{o\_done}: segnale di uscita che comunica la fine dell’elaborazione e il dato di uscita
 scritto in memoria;
-\item o\_en: segnale di ENABLE da dover mandare alla memoria per poter comunicare
+\item \texttt{o\_en}: segnale di ENABLE da dover mandare alla memoria per poter comunicare
 (sia in lettura che in scrittura);
-\item o\_we: segnale di WRITE ENABLE da dover mandare alla memoria (=1) per poter
+\item \texttt{o\_we}: segnale di WRITE ENABLE da dover mandare alla memoria (=1) per poter
 scriverci. Per leggere da memoria esso deve essere 0;
-\item o\_data: segnale (vettore) di uscita dal componente verso la memoria.
+\item \texttt{o\_data}: segnale (vettore) di uscita dal componente verso la memoria.
 
 
 \end{itemize}
@@ -113,10 +113,10 @@ scriverci. Per leggere da memoria esso deve essere 0;
 
 Le dimensioni dell'immagine, ciascuna di dimensione di 8 bit, sono memorizzati in una memoria con indirizzamento al Byte:
 \begin{itemize}
-\item Nell'indirizzo 0 viene salvato il numero di colonne (N-COL) dell'immagine.
-\item Nell'indirizzo 1 viene salvato il numero di righe (N-RIG) dell'immagine.
+\item Nell'indirizzo 0 viene salvato il numero di colonne \textsc{(n-col)} dell'immagine.
+\item Nell'indirizzo 1 viene salvato il numero di righe \textsc{(n-rig)} dell'immagine.
 \item A partire dall'indirizzo 2 vengono memorizzati i pixel dell'immagine, ciascuno di 8 bit.
-\item A partire dall'indirizzo 2+(N-COL*N-RIG) vengono memorizzati i pixel dell'immagine equalizzata.
+\item A partire dall'indirizzo \textsc{2+(n-col*n-rig)} vengono memorizzati i pixel dell'immagine equalizzata.
 
 
 \end{itemize}
@@ -132,17 +132,18 @@ Le dimensioni dell'immagine, ciascuna di dimensione di 8 bit, sono memorizzati i
 PIXEL\_1            & \multicolumn{4}{c}{Indirizzo 2}                     \\ \cline{1-1}
 ...                 & \multicolumn{4}{l}{}                                \\ \cline{1-1}
 PIXEL\_N            & \multicolumn{4}{c}{}                                \\ \cline{1-1}
-NEW\_PIXEL\_1       & \multicolumn{4}{c}{Indirizzo 2+(N\_COL*N\_RIGHE)}   \\ \cline{1-1}
+NEW\_PIXEL\_1       & \multicolumn{4}{c}{Indirizzo  \textsc{2+(n-col*n-rig)}}   \\ \cline{1-1}
 ...                 & \multicolumn{4}{c}{...}                             \\ \cline{1-1}
-NEW\_PIXEL\_N       & \multicolumn{4}{c}{Indirizzo 1+2*(N\_COL*N\_RIGHE)} \\ \cline{1-1}
+NEW\_PIXEL\_N       & \multicolumn{4}{c}{Indirizzo  \textsc{1+2*(n-col*n-rig)}} \\ \cline{1-1}
 \end{tabular}
 \end{center}
 \end{table}
 
-La dimensione massima dell'immagine è 128x128 pixel. \\ \\
+La dimensione massima dell'immagine è 128x128 pixel. 
 
 
-\section{Design}
+\section{Design e scelte progettuali}
+La macchina è pensata per lege\\
 La macchina è composta da 18 stati. Qui di seguito è fornita una descrizione dei vari processi.
 \newpage
 \newenvironment{changemargin}[2]{%
@@ -209,29 +210,57 @@ La macchina è composta da 18 stati. Qui di seguito è fornita una descrizione d
 \end{tikzpicture}
 \end{changemargin}
 
-\subsection{Gestione dell'o\_address, dell'enable, dell'o\_done e del caricamento di o\_data:}
+
+\subsection{Gestione dell'\texttt{o\_address}, dell'\texttt{enable}, dell'\texttt{o\_done} e del caricamento di \texttt{o\_data}:}
 
 Specificare che l'oaddress è uguale a mux definitivo che se uguale a 0 prende il valore di mux roaddr e se uguale a 1 prende il valore di new o roAddr, usando il segnale di mux definitivo sel.
 
 \begin{figure}[h!]
   \includegraphics[width=\linewidth]{addr1.jpg}
    \includegraphics[width=\linewidth]{addr2.jpg}
-  \caption{Gestione o\_address}
-  \label{fig:boat1}
+
 \end{figure}
 \FloatBarrier
+\newpage
+\begin{itemize}
+\item S0: caricamento nel registro \texttt{o\_roAddr} dedl valore iniziale di \texttt{o\_address} ("0000000000000000").
+\item S1-S2-S3-S\_1xN-S4: incremento il valore di \texttt{o\_roAddr} per leggere tutti i valori in memoria.
+\item S5-S\_1x1: il valore dell'\texttt{o\_address} smette di incrementare (necessario per il processo di gestione di righe e colonne).
+\item S6: ricomincia l'incremento di \texttt{o\_address}.
+\item S7: caricamento nel registro \texttt{new\_dim} dell'ultimo valore di \texttt{o\_address} che indica quanti elementi sono stati letti in memoria nel primo ciclo. Reset dell'\texttt{o\_address} e di \texttt{o\_roAddr} al valore iniziale.
+\item S8: caricamento del valore del registro \texttt{new\_dim} all'interno del registro contatore, mentre il secondo ciclo dedicato all'equalizzazione dei pixel inizia, ricominciando a incrementare il valore di \texttt{o\_roAddr}.
+\item S9: caricamento in \texttt{new\_o\_roAddr} del valore di \texttt{new\_dim} e \texttt{o\_roAddr} continua a incrementare.
+\item S10: l'\texttt{o\_address} prende il valore \texttt{new\_o\_roAddr} che ora vale \texttt{new\_dim+1} e smette di seguire \texttt{o\_roAddr}. Nel frattempo il valore di \texttt{o\_roAddr} continua a incrementare.
+\item S11: \texttt{new\_o\_roAddr} e \texttt{contatore} eseguono la stessa funzione dello stato precedente, tuttavia \texttt{o\_roAddr} si ferma al valore che aveva in S10.
+\item S12: i 3 registri si comportano allo stesso modo di S11, ma in questo stato viene caricato in memoria il valore equalizzato di un pixel ponendo \texttt{o\_we} \textless = '1'.
+\item S13: decremento il valore di \texttt{contatore} di 1, ricomincio a incrementare \texttt{o\_roAddr} e \texttt{new\_o\_roAddr} facendo in modo che però \texttt{o\_address} ora segua \texttt{o\_roAddr}.
+\item S14: \texttt{o\_roAddr} e \texttt{new\_o\_roAddr} non si incrementano più e ora \texttt{o\_address} segue \texttt{new\_o\_roAddr}. Si ferma anche valore di \texttt{contatore}.
+\item S\_FINAL: pongo \texttt{o\_done} \textless = '1' e \texttt{o\_en} \textless = '0' e la macchina termina.
+\end{itemize}
 
+
+\newpage
 \subsection{Lettura dei pixel}
 Processo per la gestione del ciclo dedicato alla lettura di tutti i pixel tramite l'uso del numero di righe e colonne:
 
 \begin{figure}[h!]
   \includegraphics[width=\linewidth]{righecolonne.jpg}
-  \caption{Gestione o\_address}
-  \label{fig:boat1}
+
 \end{figure}
 \FloatBarrier
+
+\begin{itemize}
+\item S1: viene scritto il numero di colonne all'interno del registro \texttt{o\_colonneIn} (registro che poi non verrà più modificato e utile per la gestione del secondo ciclo)
+\item S2: viene scritto il numero di righe all'interno del registro \texttt{o\_righeIn} (registro che poi non verrà più modificato e utile per la gestione del secondo ciclo). Inoltre viene caricato nel registro \texttt{o\_colonneAgg} il valore di \texttt{o\_colonneIn} (registro che salva un valore e, quando necessario, decrementa il valore di 1). 
+\item S3: viene caricato nel registro \texttt{o\_righeAgg} il valore di \texttt{o\_righeIn} (registro che salva un valore e, quando necessario, decrementa il valore di 1).
+\item S1xN: stato che decrementa di 1 il valore di \texttt{o\_righeAgg} (tramite \texttt{sub\_righe}), ponendo a 1 \texttt{righeAgg\_sel}.
+\item S4: stato di loop che per ogni ciclo di clock decrementa di 1 il valore di \texttt{o\_colonneAgg} (tramite \texttt{sub\_colonne}), ponendo a 1 \texttt{colonneAgg\_sel}. 
+\item S5: stato che riporta il valore di \texttt{o\_colonneAgg} al valore iniziale contenuto in \texttt{o\_colonneIn} e nel frattempo decrementa di 1 il valore di \texttt{o\_righeAgg} (tramite \texttt{sub\_righe}), ponendo a 1 \texttt{righeAgg\_sel}.
+\item S6: stato che riporta il valore di \texttt{o\_colonneAgg} al valore iniziale contenuto in \texttt{o\_colonneIn}.
+\end{itemize}
+
 \newpage
-\subsection{Calcolo pixel massimo e minimo e applicazione algoritmo per trovare valore nuovo pixel}
+\subsection{Calcolo \textsc{max\_pixel\_value} e \textsc{min\_pixel\_value} e applicazione algoritmo per calcolare \textsc{new\_pixel\_value}}
 Processo dedicato alla determinazione del pixel con valore massimo e minimo, del delta\_value e dello shift\_level e del nuovo valore del pixel
 
 
@@ -241,31 +270,39 @@ Processo dedicato alla determinazione del pixel con valore massimo e minimo, del
 \hspace*{-1.1in}
   \includegraphics[width=.7\textwidth]{pixel.jpg}
  \includegraphics[width=.7\textwidth]{shiftlevel.jpg}
-  \caption{Gestione o\_address}
-  \label{fig:boat1}
+
 \end{figure}
 
 
-\newpage
-\begin{figure}[h!]
-  \includegraphics[width=\linewidth]{odata.jpg}
+
+\begin{figure}[b!]
+  \includegraphics[width=.8\textwidth]{odata.jpg}
   \caption{Gestione o\_address}
   \label{fig:boat1}
 \end{figure}
 \FloatBarrier
 
-
-
+\begin{itemize}
+\item S3: salva il valore del primo pixel in \texttt{o\_pixelIn}, \texttt{o\_pixelMax}, mentre in \texttt{o\_pixelMin} viene caricato il valore 255.
+\item S1x1: stato di eccezione quando la tabella contiene un solo pixel, viene salvato il valore di quel pixel in \texttt{o\_pixelMin}.
+\item S4-S5-S6-S7-S\_1xN: stati in cui vengono letti tutti i pixel di una colonna e viene verificato quale sia il pixel con valore massimo e minimo.
+\item S8: carica nel registro \texttt{delta\_value} la differenza tra i valori finali di \texttt{o\_pixelMax} e \texttt{o\_pixelMin} e carica il valore di \texttt{i\_data} in \texttt{o\_pixelIn}.
+\item S9: carica il valore di \texttt{i\_data} in \texttt{o\_pixelIn}.
+\item S10: parte il secondo ciclo e inserisco il primo valore della tabella nel registro \texttt{o\_current\_pixel\_value} e salvo nel registro \texttt{shift\_level}
+la differenza tra 8 e il valore di \texttt{o\_floor}.
+\item S14: stato che per ogni ciclo carica il valore di un pixel nel registro \texttt{o\_current\_pixel\_value}.
+\end{itemize}
 
 \newpage
-\section{Risultati dei test}
+\section{Risultati sperimentali}
+\subsection{Report di sintesi}
+\subsection{Simulazioni}
+. test bench 1 (cosa fa e perchè lo fa e cosa verifica; per esempio,
+controlla una condizione limite)
+ii. test bench 2 (....)
 
 \newpage
 \section{Conclusioni}
-\newpage
-
-\subsection{Risultati della sintesi}
-\subsection{Ottimizzazioni}
 Nel progettare il componente hardware, abbiamo prestato particolare attenzione nel rimuovere tutti i latch presenti.
 
 
