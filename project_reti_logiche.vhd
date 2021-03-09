@@ -155,12 +155,18 @@ begin
                 when S1 =>
                     next_state <= S2;
                 when S2 =>
-                    next_state <= S3;
+                    if o_colonneIn = "00000000" then
+                        next_state <= S_FINAL;
+                    else
+                        next_state <= S3;
+                    end if;
                 when S3 =>
                     if o_colonneIn = "00000001" and o_righeIn /= "00000001" then
-                        next_state <= S_1xN;  
+                        next_state <= S_1xN;
                     elsif o_colonneIn = "00000001" and o_righeIn = "00000001" then 
                         next_state <= S_1x1;
+                    elsif o_righeIn = "00000000" then
+                        next_state <= S_FINAL;
                     else
                         next_state <= S4;
                     end if;        
@@ -545,6 +551,5 @@ begin
             when S_FINAL =>
         end case;
     end process;
-  
-                               
+                                
 end Behavioral;
