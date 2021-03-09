@@ -341,15 +341,37 @@ la differenza tra 8 e il valore di \texttt{o\_floor}.
 Gli stati S0, S1, S2, S11, S12, S13, S\_FINAL non vengono utilizzati all'interno di questo processo.
 \newpage
 \section{Risultati sperimentali}
+
+
+
 \subsection{Report di sintesi}
+\begin{figure}[h!]
+\begin{center}
+  \includegraphics[width=\linewidth]{latch.png}
+\caption*{Fig.3.1}
+\end{center}
+\end{figure}
+\FloatBarrier
+
 \subsection{Simulazioni}
-. test bench 1 (cosa fa e perchè lo fa e cosa verifica; per esempio,
-controlla una condizione limite)
-ii. test bench 2 (....)
+A seguire proponiamo 3 testbench per coprire tutti i percorsi possibili della macchina a stati:
+\subsubsection{Tabella 1x1: (min = max, delta\_value = 0)}
+\subsubsection{Tabella 1x4: (min = 0 , max = 255, delta\_value = 255)}
+\subsubsection{Tabella 2x3}
+
+\begin{figure}[h!]
+\begin{center}
+  \includegraphics[width=\linewidth]{tb 2x3 primaparte.png}
+\caption*{Fig.3.1}
+  \includegraphics[width=\linewidth]{tb 2x3 secondaparte.png}
+\caption*{Fig.3.1}
+\end{center}
+\end{figure}
+\FloatBarrier
 
 \newpage
 \section{Conclusioni}
 Nel progettare il componente hardware, abbiamo prestato particolare attenzione nel rimuovere tutti i latch presenti.
-0x0 non considerata perchè fuori specifica
+
 
 \end{document}
