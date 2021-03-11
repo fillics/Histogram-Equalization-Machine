@@ -436,7 +436,7 @@ begin
                     shift_value(7 downto 0) when '1',
                     "XXXXXXXX" when others; 
   
-    process(cur_state)
+    process(cur_state, delta_value_sum, shift_level)
         begin       
         pixelIn_load <= '0';
         pixelMin_load <= '0';
