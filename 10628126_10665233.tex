@@ -340,38 +340,79 @@ la differenza tra 8 e il valore di \texttt{o\_floor}.
 \end{itemize}
 Gli stati S0, S1, S2, S11, S12, S13, S\_FINAL non vengono utilizzati all'interno di questo processo.
 \newpage
+
+
 \section{Risultati sperimentali}
-
-
-
 \subsection{Report di sintesi}
+
+
+Il componente sintetizzato supera correttamente tutti i test specificati nelle 3 simulazioni:
+\emph{Post-Synthesis Timing}, \emph{Behavioral} e \emph{Post-Synthesis Functional}.\\
+Qui di seguito è possibile vedere i tempi di simulazione dei due casi estremi del programma:
+\begin{itemize}
+\item 1262ns - tempo di simulazione (Behavioral) con immagine di dimensione 1x1
+\item 8205950ns - tempo di simulazione (Behavioral) con immagine di dimensione 128x128
+\end{itemize}
+
+Serve considerare il \emph{Worst Negative Slack} presente nella tabella Design Timing Summary (fig.3.1)
+per avere un parametro che dica, rispetto al tempo totale a disposizione, quale sia il tempo del
+path peggiore.
 \begin{figure}[h!]
 \begin{center}
-  \includegraphics[width=\linewidth]{latch.png}
-\caption*{Fig.3.1}
+  \includegraphics[width=\linewidth]{timing.png}
+\caption*{Fig.3.1: Design Timing Summary}
 \end{center}
 \end{figure}
 \FloatBarrier
+
 
 \subsection{Simulazioni}
-A seguire proponiamo 3 testbench per coprire tutti i percorsi possibili della macchina a stati:
-\subsubsection{Tabella 1x1: (min = max, delta\_value = 0)}
-\subsubsection{Tabella 1x4: (min = 0 , max = 255, delta\_value = 255)}
-\subsubsection{Tabella 2x3}
+Per verificare il corretto funzionamento del componente sintetizzato, oltre a testarlo con il testbench fornito, abbiamo definito alcuni casi di test (tra i quali quelli per verificare il corretto funzionamento nei casi limite) in modo da cercare di coprire tutti i possibili cammini che la macchina può effettuare durante la computazione.\\
+Di seguito è fornita una breve descrizione dei test utilizzati (con l'effettivo corretto funzionamento grazie allo screenshot dell’andamento dei segnali durante la simulazione).\\
+
+\begin{enumerate}
+\item \textbf{Tabella 1x1}: (min = max, delta\_value = 0)\\
+Caso di test analizzato per verificare il corretto funzionamento del percorso della macchina a stati (... $\rightarrow$ S3 $\rightarrow$ S1x1 $\rightarrow$ S7 $\rightarrow$ ...).\\
+Inoltre copriamo anche il caso di test in cui il delta value assume valore 0 e, di conseguenza, lo shift level è massimo (=8, caso limite).
 
 \begin{figure}[h!]
 \begin{center}
-  \includegraphics[width=\linewidth]{tb 2x3 primaparte.png}
-\caption*{Fig.3.1}
-  \includegraphics[width=\linewidth]{tb 2x3 secondaparte.png}
-\caption*{Fig.3.1}
+  \includegraphics[width=\linewidth]{1x1.png}
+\caption*{Fig.3.2: Simulazione Caso 1x1}
 \end{center}
 \end{figure}
 \FloatBarrier
 
-\newpage
+\item \textbf{Tabella 1x4}: (min = 0 , max = 255, delta\_value = 255)\\
+Caso di test analizzato per verificare il corretto funzionamento del percorso della macchina a stati (... $\rightarrow$ S3 $\rightarrow$ S1xN $\rightarrow$ S7 $\rightarrow$ ...).\\
+Inoltre copriamo anche il caso di test in cui il delta value assume valore massimo e, di conseguenza, lo shift level è minimo (=0, caso limite).
+
+\begin{figure}[h!]
+\begin{center}
+  \includegraphics[width=\linewidth]{1x4.png}
+\caption*{Fig.3.3: Simulazione Caso 1x4}
+\end{center}
+\end{figure}
+\FloatBarrier
+
+\end{enumerate}
+
+Per verificare la correttezza del programma e per coprire tutti i casi possibili, oltre ai testbench sopra citati, abbiamo creato in codice C un testbench che generasse un numero arbitrario di immagini con dimensione da 1x1 a 128x128 pixel, con valori compresi
+tra 0 e 255 (inclusi). Abbiamo poi inserito due file di output che specificassero i test passati e i test non passati. \\
+Testando il generatore con più di 10.000 immagini diverse non è mai stato evidenziato un test non passato.
+
+
+
 \section{Conclusioni}
-Nel progettare il componente hardware, abbiamo prestato particolare attenzione nel rimuovere tutti i latch presenti.
+
+Per concludere, le difficoltà incontrate durante la realizzazione del progetto sono state principalmente legate alla rimozione dei latch presenti, come si denota nella figura 4.1.\\ Inoltre, abbiamo posto particolare attenzione alle lettura e scrittura dei dati nell'indirizzo di memoria corretto.
+\begin{figure}[h!]
+\begin{center}
+  \includegraphics[width=100mm,scale=0.5]{latch.png}
+\caption*{Fig.4.1}
+\end{center}
+\end{figure}
+\FloatBarrier
 
 
 \end{document}
