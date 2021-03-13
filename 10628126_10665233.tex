@@ -7,7 +7,7 @@
 \usepackage{xcolor}
 \usepackage{multirow}
 \usepackage{graphicx}
-\usepackage[english]{babel}
+\usepackage[english,italian]{babel}
 \usepackage[utf8x]{inputenc}
 \usepackage{amsmath}
 \usepackage{tikz}
@@ -15,9 +15,10 @@
 \usepackage{caption}
 \usepackage{listings}
 
+
 \usetikzlibrary{arrows,automata}
 
-\renewcommand{\contentsname}{Indice}
+\renewcommand*\contentsname{Indice}
 
 
 \title{PROVA FINALE DI RETI LOGICHE}
@@ -38,7 +39,7 @@
 
 \subsection{Scopo del progetto}
 Lo scopo del progetto è la realizzazione di un componente hardware, scritto in VHDL. Esso riceve in ingresso un'immagine in scala di grigi a 256 livelli e, dopo aver applicato un algoritmo di equalizzazione a ciascun pixel, scrive in output l'immagine equalizzata.\\
-Di seguito è raffigurato un esempio di un'immagine 2x2 equalizzata (l'indirizzo dei dati in memoria verrà spiegato nel paragrafo 1.4).
+Di seguito è raffigurato un esempio di equalizzazione di un'immagine 2x2 (l'indirizzo dei dati in memoria verrà spiegato nel paragrafo 1.4).
 
 \begin{table}[h!]
   \begin{center}
@@ -117,7 +118,7 @@ Le dimensioni dell'immagine (max 128x128 pixel), ciascuna di dimensione di 8 bit
 \item Nell'indirizzo 0 viene salvato il numero di colonne \textsc{(n-col)} dell'immagine.
 \item Nell'indirizzo 1 viene salvato il numero di righe \textsc{(n-rig)} dell'immagine.
 \item A partire dall'indirizzo 2 vengono memorizzati i pixel dell'immagine, ciascuno di 8 bit.
-\item A partire dall'indirizzo \textsc{2+(n-col*n-rig)} vengono memorizzati i pixel dell'immagine equalizzata. Come nell'esempio di figura 1.1, i pixel equalizzati vengono salvati a partire dall'indirizzo 7.
+\item A partire dall'indirizzo \textsc{2+(n-col*n-rig)} vengono memorizzati i pixel dell'immagine equalizzata. Come nell'esempio di figura 1.1, i pixel equalizzati vengono salvati a partire dall'indirizzo 6.
 
 
 \end{itemize}
@@ -142,13 +143,13 @@ NEW\_PIXEL\_N       & \multicolumn{4}{c}{Indirizzo  \textsc{1+2*(n-col*n-rig)}} 
 \end{table}
 
 
-\section{Design e scelte progettuali}
+\section{Architettura}
 La macchina a stati è composta da 18 stati ed è principalmente divisa in due macro-parti:
 \begin{itemize}
 \item Dallo stato S0 allo stato S8 viene eseguita la prima parte dell'algoritmo che verge alla\underline{ lettura di tutti i pixel} allo scopo di determinare il pixel con valore massimo, il pixel con valore minimo e conseguentemente il valore di \texttt{delta\_value}. \\ \\I primi 3 stati sono dedicati alla lettura della
 dimensione della tabella, successivamente, in \textbf{S3} viene letto il primo valore del pixel e, in base al numero di colonne e righe, la macchina può andare in 2 stati eccezionali (\textbf{S1x1, S1xN}) che trattano casi particolari che il normale algoritmo non riesce a gestire (spiegazione più dettagliata nel paragrafo 2.3), oppure dallo stato \textbf{S3} si passa allo stato \textbf{S4} che, insieme agli stati \textbf{S5} e \textbf{S6}, gestiranno l'algoritmo per tabelle di dimensione 
 NxN e Nx1.\\In \textbf{S7} viene letto l'ultimo pixel dell'immagine. Una volta letti tutti i pixel e determinati \texttt{max\_pixel\_value} e \texttt{min\_pixel\_value}, la macchina passa allo stato \textbf{S8} dove viene calcolato e salvato il valore di \texttt{delta\_value}.
-\item La seconda parte della macchina a stati (da S9 a S\_FINAL) è dedicata alla \underline{determinazione dei valori equalizzati dei pixel originali} e il loro caricamento in memoria. \\ \\Una volta finito il primo ciclo grazie al quale ora si conoscono i valori di \texttt{max\_pixel\_value}, \texttt{min\_pixel\_value} e \texttt{delta\_value} è possibile calcolare il valore di \texttt{shift\_level} e, successivamente, per ogni pixel dell'immagine, determinare \texttt{temp\_pixel} e \texttt{new\_pixel\_value} per poi caricare i nuovi valori in memoria.\\ Lo stato \textbf{S9} è necessario per il corretto funzionamento della gestione di \texttt{o\_address} (paragrafo 2.1).\\ Nello stato \textbf{S10} viene salvato il valore di \texttt{shift\_level} e viene letto il primo pixel da modificare.\\ Gli stati \textbf{S11-S12-S13-S14} sono dedicati alla lettura, trasformazione e caricamento in memoria dei pixel dell'immagine. \\In \textbf{S13}, viene eseguito il ciclo tante volte quanto il numero di pixel presenti nell'immagine grazie al segnale o\_end\_contatore. \\Quando \texttt{o\_end\_contatore \textless= '1'}, la macchina passa in\textbf{ S\_FINAL}, in cui viene mandato \texttt{o\_done \textless= '1'}. La macchina torna poi in \textbf{S0} pronta a leggere, se esiste, una nuova immagine. 
+\item La seconda parte della macchina a stati (da S9 a S\_FINAL) è dedicata alla \underline{determinazione dei valori equalizzati dei pixel originali} e il loro caricamento in memoria. \\ \\Una volta finito il primo ciclo grazie al quale ora si conoscono i valori di \texttt{max\_pixel\_value}, \texttt{min\_pixel\_value} e \texttt{delta\_value} è possibile calcolare il valore di \texttt{shift\_level} e, successivamente, per ogni pixel dell'immagine, determinare \texttt{temp\_pixel} e \texttt{new\_pixel\_value} per poi caricare i nuovi valori in memoria.\\ Lo stato \textbf{S9} è necessario per il corretto funzionamento della gestione di \texttt{o\_address} (paragrafo 2.1).\\ Nello stato \textbf{S10} viene salvato il valore di \texttt{shift\_level} e viene letto il primo pixel da modificare.\\ Gli stati \textbf{S11-S12-S13-S14} sono dedicati alla lettura, trasformazione e caricamento in memoria dei pixel dell'immagine. \\In \textbf{S13}, viene eseguito il ciclo tante volte quanto il numero di pixel presenti nell'immagine grazie al segnale \texttt{o\_end\_contatore}. \\Quando \texttt{o\_end\_contatore \textless= '1'}, la macchina passa in\textbf{ S\_FINAL}, in cui viene mandato \texttt{o\_done \textless= '1'}. La macchina torna poi in \textbf{S0} pronta a leggere, se esiste, una nuova immagine. 
 \end{itemize}
 Negli stati \textbf{S2} e \textbf{S3}, se si verifica che almeno uno dei due valori salvati in \texttt{o\_colonneIn} e in \texttt{o\_righeIn} è uguale a 0 (cioè, almeno una delle dimensioni della tabella è nulla), allora la macchina va direttamente in \textbf{ S\_FINAL}.\\
 Per maggiore ordine e chiarezza nella lettura e scrittura del codice, il programma è stato diviso in 3 processi dediti ognuno a precisi compiti. Nei paragrafi 2.1, 2.2 e 2.3 viene spiegato nel dettaglio il compito di ogni processo e il ruolo di ogni stato nell'esecuzione di questo.
@@ -221,7 +222,7 @@ Per maggiore ordine e chiarezza nella lettura e scrittura del codice, il program
 \end{changemargin}
 
 
-\subsection{Gestione dell'\texttt{o\_address}, dell'\texttt{enable}, dell'\texttt{o\_done} e del caricamento di \texttt{o\_data}:}
+\subsection{Gestione dell'\texttt{o\_address}, dell'\texttt{enable}, dell'\texttt{o\_done} e del caricamento di \texttt{o\_data}}
 Il valore di \texttt{o\_address} viene gestito in maniera diversa tramite l'uso di \texttt{mux\_definitivo} (Fig.2.2) che, in base al segnale \texttt{mux\_definitivo\_sel}, gli assegna il valore adatto: 
 \begin{itemize}
 \item Fase di lettura (\texttt{mux\_definitivo\_sel = '0'}): l'indirizzo di memoria aumenta tramite il sommatore, raffigurato in alto nella Fig.2.1, per poter leggere tutti i pixel.
@@ -259,7 +260,7 @@ Nella prima macro-parte dell'algoritmo che va da S0 a S8, per la gestione dell'\
 \item \textbf{S12}: i 3 registri si comportano allo stesso modo di S11, ma in questo stato viene caricato in memoria il valore equalizzato di un pixel ponendo \texttt{o\_we \textless = '1'}.
 \item \textbf{S13}: decremento il valore di \texttt{contatore} di 1, ricomincio a incrementare \texttt{o\_roAddr} e \texttt{new\_o\_roAddr} facendo in modo che però \texttt{o\_address} ora segua \texttt{o\_roAddr}.
 \item \textbf{S14}: \texttt{o\_roAddr} e \texttt{new\_o\_roAddr} non si incrementano più e ora \texttt{o\_address} segue \texttt{new\_o\_roAddr}. Si ferma anche valore di \texttt{contatore}.
-\item \textbf{S\_FINAL}: pongo \texttt{o\_done \textless = '1'} e \texttt{o\_en \textless = '0'} e la macchina termina.
+\item \textbf{S\_FINAL}: vengono posti \texttt{o\_done \textless = '1'} e \texttt{o\_en \textless = '0'}.
 \end{itemize}
 
 
@@ -334,8 +335,7 @@ Se maggiore, a \texttt{o\_data} viene assegnato l'intero 255. \\
 \item \textbf{S4-S5-S6-S7-S1xN}: stati in cui vengono letti tutti i pixel di una colonna e viene verificato quale sia il pixel con valore massimo e minimo.
 \item \textbf{S8}: carica nel registro \texttt{delta\_value} la differenza tra i valori finali di \texttt{o\_pixelMax} e \texttt{o\_pixelMin} e carica il valore di \texttt{i\_data} in \texttt{o\_pixelIn}.
 \item \textbf{S9}: carica il valore di \texttt{i\_data} in \texttt{o\_pixelIn}.
-\item \textbf{S10}: inserisco il primo valore della tabella nel registro \texttt{o\_current\_pixel\_value} e salvo nel registro \texttt{shift\_level}. Inizia il ciclo per la lettura e il caricamento in memoria di tutti i pixel equalizzati.
-la differenza tra 8 e il valore di \texttt{o\_floor}.
+\item \textbf{S10}: inserisco il primo valore della tabella nel registro \texttt{o\_current\_pixel\_value} e salvo nel registro \texttt{shift\_level}.
 \item \textbf{S14}: stato che per ogni ciclo carica il valore di un pixel nel registro \texttt{o\_current\_pixel\_value}.
 \end{itemize}
 Gli stati S0, S1, S2, S11, S12, S13, S\_FINAL non vengono utilizzati all'interno di questo processo.
